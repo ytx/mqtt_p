@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MQTT Patcher</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .topic-row {
+            cursor: pointer;
+        }
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-connected {
+            background-color: #28a745;
+        }
+        .status-disconnected {
+            background-color: #dc3545;
+        }
+        .function-toggle {
+            cursor: pointer;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+        .function-active {
+            background-color: #28a745;
+            color: white;
+        }
+        .function-inactive {
+            background-color: #6c757d;
+            color: white;
+        }
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            min-width: 120px;
+        }
+        .context-menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        .context-menu-item:hover {
+            background-color: #f8f9fa;
+        }
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-3">
+        <!-- Header -->
+        <div class="row mb-3">
+            <div class="col">
+                <h2>
+                    <span class="status-indicator status-disconnected" id="connectionStatus"></span>
+                    MQTT Patcher
+                </h2>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-primary me-2" id="settingsBtn">
+                    <i class="bi bi-gear"></i> 設定
+                </button>
+                <button class="btn btn-primary" id="addTopicBtn">
+                    <i class="bi bi-plus"></i> 新規登録
+                </button>
+            </div>
+        </div>
+
+        <!-- Topic List Table -->
+        <div class="row">
+            <div class="col">
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ラベル</th>
+                            <th>表示</th>
+                            <th>トピック</th>
+                            <th>ペイロード</th>
+                            <th>機能</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topicTableBody">
+                        <!-- Topics will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu d-none" id="contextMenu">
+        <div class="context-menu-item" id="editTopic">編集</div>
+        <div class="context-menu-item" id="deleteTopic">削除</div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">設定</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-tabs" id="settingsTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#mqttTab">MQTT接続</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#dataTab">データ管理</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content mt-3">
+                        <div class="tab-pane fade show active" id="mqttTab">
+                            <form id="mqttSettingsForm">
+                                <div class="mb-3">
+                                    <label for="mqttHost" class="form-label">ホスト</label>
+                                    <input type="text" class="form-control" id="mqttHost" placeholder="broker.example.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mqttPort" class="form-label">ポート</label>
+                                    <input type="number" class="form-control" id="mqttPort" value="8083">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mqttUsername" class="form-label">ユーザー名</label>
+                                    <input type="text" class="form-control" id="mqttUsername">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="mqttPassword" class="form-label">パスワード</label>
+                                    <input type="password" class="form-control" id="mqttPassword">
+                                </div>
+                                <button type="button" class="btn btn-primary" id="connectBtn">接続</button>
+                                <button type="button" class="btn btn-secondary" id="disconnectBtn">切断</button>
+                            </form>
+                        </div>
+                        <div class="tab-pane fade" id="dataTab">
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-outline-primary" id="exportBtn">エクスポート</button>
+                                <button type="button" class="btn btn-outline-success" id="importBtn">インポート</button>
+                            </div>
+                            <div class="mb-3">
+                                <label for="dataTextArea" class="form-label">設定データ</label>
+                                <textarea class="form-control" id="dataTextArea" rows="10"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                    <button type="button" class="btn btn-primary" id="saveSettingsBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Topic Configuration Modal -->
+    <div class="modal fade" id="topicModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="topicModalTitle">トピック設定</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="topicForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="topicLabel" class="form-label">ラベル</label>
+                                <input type="text" class="form-control" id="topicLabel" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="topicName" class="form-label">トピック名</label>
+                                <input type="text" class="form-control" id="topicName" required>
+                            </div>
+                        </div>
+
+                        <!-- Payload Values Section -->
+                        <div class="mb-4">
+                            <h6>ペイロード値設定</h6>
+                            <div class="mb-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="addPayloadBtn">
+                                    <i class="bi bi-plus"></i> ペイロード値追加
+                                </button>
+                            </div>
+                            <div id="payloadValues">
+                                <!-- Payload value entries will be inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- Function Settings Section -->
+                        <div class="mb-4">
+                            <h6>機能設定</h6>
+                            <div class="mb-3">
+                                <select class="form-select" id="functionType">
+                                    <option value="">機能なし</option>
+                                    <option value="transfer">転送</option>
+                                    <option value="convert">変換</option>
+                                    <option value="cycle">循環</option>
+                                </select>
+                            </div>
+
+                            <!-- Transfer Settings -->
+                            <div id="transferSettings" class="d-none">
+                                <div class="mb-3">
+                                    <label for="transferTopic" class="form-label">転送先トピック</label>
+                                    <input type="text" class="form-control" id="transferTopic">
+                                </div>
+                            </div>
+
+                            <!-- Convert Settings -->
+                            <div id="convertSettings" class="d-none">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="convertTopic" class="form-label">変換先トピック</label>
+                                        <input type="text" class="form-control" id="convertTopic">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="convertDefault" class="form-label">デフォルト値</label>
+                                        <input type="text" class="form-control" id="convertDefault">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cycle Settings -->
+                            <div id="cycleSettings" class="d-none">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="cycleNextPayload" class="form-label">進むペイロード</label>
+                                        <input type="text" class="form-control" id="cycleNextPayload">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="cyclePrevPayload" class="form-label">戻るペイロード（任意）</label>
+                                        <input type="text" class="form-control" id="cyclePrevPayload">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" class="btn btn-primary" id="saveTopicBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script>
+        // Global variables
+        let mqttClient = null;
+        let topics = [];
+        let currentTopicIndex = -1;
+        let selectedRow = null;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+            loadTopics();
+            renderTopics();
+            initializeEventListeners();
+        });
+
+        // Event listeners
+        function initializeEventListeners() {
+            // Settings button
+            document.getElementById('settingsBtn').addEventListener('click', function() {
+                new bootstrap.Modal(document.getElementById('settingsModal')).show();
+            });
+
+            // Add topic button
+            document.getElementById('addTopicBtn').addEventListener('click', function() {
+                currentTopicIndex = -1;
+                showTopicModal();
+            });
+
+            // MQTT connection buttons
+            document.getElementById('connectBtn').addEventListener('click', connectMQTT);
+            document.getElementById('disconnectBtn').addEventListener('click', disconnectMQTT);
+
+            // Settings save
+            document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+
+            // Topic modal
+            document.getElementById('saveTopicBtn').addEventListener('click', saveTopic);
+            document.getElementById('addPayloadBtn').addEventListener('click', addPayloadEntry);
+            document.getElementById('functionType').addEventListener('change', toggleFunctionSettings);
+
+            // Export/Import
+            document.getElementById('exportBtn').addEventListener('click', exportData);
+            document.getElementById('importBtn').addEventListener('click', importData);
+
+            // Context menu
+            document.addEventListener('click', hideContextMenu);
+            document.getElementById('editTopic').addEventListener('click', editSelectedTopic);
+            document.getElementById('deleteTopic').addEventListener('click', deleteSelectedTopic);
+        }
+
+        // MQTT connection management
+        function connectMQTT() {
+            const host = document.getElementById('mqttHost').value;
+            const port = document.getElementById('mqttPort').value;
+            const username = document.getElementById('mqttUsername').value;
+            const password = document.getElementById('mqttPassword').value;
+
+            if (!host) {
+                alert('ホストを入力してください');
+                return;
+            }
+
+            const options = {
+                port: parseInt(port),
+                username: username || undefined,
+                password: password || undefined
+            };
+
+            mqttClient = mqtt.connect(`ws://${host}:${port}/mqtt`, options);
+
+            mqttClient.on('connect', function() {
+                document.getElementById('connectionStatus').className = 'status-indicator status-connected';
+                subscribeToTopics();
+            });
+
+            mqttClient.on('message', function(topic, message) {
+                handleMessage(topic, message.toString());
+            });
+
+            mqttClient.on('error', function(error) {
+                console.error('MQTT Error:', error);
+                document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+            });
+
+            mqttClient.on('close', function() {
+                document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+            });
+        }
+
+        function disconnectMQTT() {
+            if (mqttClient) {
+                mqttClient.end();
+                mqttClient = null;
+            }
+            document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+        }
+
+        function subscribeToTopics() {
+            if (!mqttClient) return;
+
+            topics.forEach(topic => {
+                if (topic.name) {
+                    mqttClient.subscribe(topic.name);
+                }
+            });
+        }
+
+        // Message handling
+        function handleMessage(topic, payload) {
+            const topicConfig = topics.find(t => t.name === topic);
+            if (!topicConfig || !topicConfig.functionEnabled) return;
+
+            // Update display
+            updateTopicDisplay(topic, payload);
+
+            // Execute function
+            switch (topicConfig.functionType) {
+                case 'transfer':
+                    handleTransfer(topicConfig, payload);
+                    break;
+                case 'convert':
+                    handleConvert(topicConfig, payload);
+                    break;
+                case 'cycle':
+                    handleCycle(topicConfig, payload);
+                    break;
+            }
+        }
+
+        function handleTransfer(topicConfig, payload) {
+            if (topicConfig.transferTopic && mqttClient) {
+                mqttClient.publish(topicConfig.transferTopic, payload);
+            }
+        }
+
+        function handleConvert(topicConfig, payload) {
+            if (!topicConfig.convertTopic || !mqttClient) return;
+
+            const payloadValue = topicConfig.payloadValues.find(pv => pv.value === payload);
+            const convertValue = payloadValue ? payloadValue.convertValue : topicConfig.convertDefault;
+
+            if (convertValue !== undefined && convertValue !== null) {
+                mqttClient.publish(topicConfig.convertTopic, convertValue);
+            }
+        }
+
+        function handleCycle(topicConfig, payload) {
+            if (!mqttClient) return;
+
+            const isNext = payload === topicConfig.cycleNextPayload;
+            const isPrev = payload === topicConfig.cyclePrevPayload;
+
+            if (!isNext && !isPrev) return;
+
+            const values = topicConfig.payloadValues.map(pv => pv.value);
+            if (values.length === 0) return;
+
+            let currentIndex = values.indexOf(topicConfig.currentValue);
+            if (currentIndex === -1) currentIndex = -1;
+
+            let nextIndex;
+            if (isNext) {
+                nextIndex = (currentIndex + 1) % values.length;
+            } else {
+                nextIndex = currentIndex <= 0 ? values.length - 1 : currentIndex - 1;
+            }
+
+            const nextValue = values[nextIndex];
+            topicConfig.currentValue = nextValue;
+
+            mqttClient.publish(topicConfig.name, nextValue, { retain: true });
+            saveTopics();
+        }
+
+        // Topic management
+        function showTopicModal(topicData = null) {
+            const modal = new bootstrap.Modal(document.getElementById('topicModal'));
+
+            // Reset form
+            document.getElementById('topicForm').reset();
+            document.getElementById('payloadValues').innerHTML = '';
+            document.getElementById('functionType').value = '';
+            toggleFunctionSettings();
+
+            if (topicData) {
+                // Edit mode
+                document.getElementById('topicModalTitle').textContent = 'トピック編集';
+                document.getElementById('topicLabel').value = topicData.label || '';
+                document.getElementById('topicName').value = topicData.name || '';
+                document.getElementById('functionType').value = topicData.functionType || '';
+
+                // Load payload values
+                if (topicData.payloadValues) {
+                    topicData.payloadValues.forEach(pv => {
+                        addPayloadEntry(pv);
+                    });
+                }
+
+                // Load function settings
+                if (topicData.functionType) {
+                    toggleFunctionSettings();
+                    switch (topicData.functionType) {
+                        case 'transfer':
+                            document.getElementById('transferTopic').value = topicData.transferTopic || '';
+                            break;
+                        case 'convert':
+                            document.getElementById('convertTopic').value = topicData.convertTopic || '';
+                            document.getElementById('convertDefault').value = topicData.convertDefault || '';
+                            break;
+                        case 'cycle':
+                            document.getElementById('cycleNextPayload').value = topicData.cycleNextPayload || '';
+                            document.getElementById('cyclePrevPayload').value = topicData.cyclePrevPayload || '';
+                            break;
+                    }
+                }
+            } else {
+                // Add mode
+                document.getElementById('topicModalTitle').textContent = '新規トピック';
+                addPayloadEntry(); // Add one empty entry
+            }
+
+            modal.show();
+        }
+
+        function addPayloadEntry(data = null) {
+            const container = document.getElementById('payloadValues');
+            const entry = document.createElement('div');
+            entry.className = 'row mb-2 payload-entry';
+            entry.innerHTML = `
+                <div class="col-md-3">
+                    <input type="text" class="form-control payload-value" placeholder="ペイロード値" value="${data?.value || ''}">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control payload-display" placeholder="表示文字列" value="${data?.display || ''}">
+                </div>
+                <div class="col-md-2">
+                    <input type="color" class="form-control form-control-color payload-color" value="${data?.color || '#ffffff'}">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" class="form-control convert-value" placeholder="変換値" value="${data?.convertValue || ''}">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-payload">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `;
+
+            entry.querySelector('.remove-payload').addEventListener('click', function() {
+                entry.remove();
+            });
+
+            container.appendChild(entry);
+        }
+
+        function toggleFunctionSettings() {
+            const functionType = document.getElementById('functionType').value;
+
+            document.getElementById('transferSettings').classList.add('d-none');
+            document.getElementById('convertSettings').classList.add('d-none');
+            document.getElementById('cycleSettings').classList.add('d-none');
+
+            if (functionType) {
+                document.getElementById(`${functionType}Settings`).classList.remove('d-none');
+            }
+        }
+
+        function saveTopic() {
+            const form = document.getElementById('topicForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const topicData = {
+                label: document.getElementById('topicLabel').value,
+                name: document.getElementById('topicName').value,
+                functionType: document.getElementById('functionType').value,
+                functionEnabled: true,
+                payloadValues: [],
+                currentValue: null,
+                currentPayload: null
+            };
+
+            // Collect payload values
+            const payloadEntries = document.querySelectorAll('.payload-entry');
+            payloadEntries.forEach(entry => {
+                const value = entry.querySelector('.payload-value').value;
+                const display = entry.querySelector('.payload-display').value;
+                const color = entry.querySelector('.payload-color').value;
+                const convertValue = entry.querySelector('.convert-value').value;
+
+                if (value) {
+                    topicData.payloadValues.push({
+                        value,
+                        display: display || value,
+                        color,
+                        convertValue
+                    });
+                }
+            });
+
+            // Function-specific settings
+            switch (topicData.functionType) {
+                case 'transfer':
+                    topicData.transferTopic = document.getElementById('transferTopic').value;
+                    break;
+                case 'convert':
+                    topicData.convertTopic = document.getElementById('convertTopic').value;
+                    topicData.convertDefault = document.getElementById('convertDefault').value;
+                    break;
+                case 'cycle':
+                    topicData.cycleNextPayload = document.getElementById('cycleNextPayload').value;
+                    topicData.cyclePrevPayload = document.getElementById('cyclePrevPayload').value;
+                    break;
+            }
+
+            if (currentTopicIndex >= 0) {
+                topics[currentTopicIndex] = topicData;
+            } else {
+                topics.push(topicData);
+            }
+
+            saveTopics();
+            renderTopics();
+
+            if (mqttClient && mqttClient.connected) {
+                mqttClient.subscribe(topicData.name);
+            }
+
+            bootstrap.Modal.getInstance(document.getElementById('topicModal')).hide();
+        }
+
+        // UI rendering
+        function renderTopics() {
+            const tbody = document.getElementById('topicTableBody');
+            tbody.innerHTML = '';
+
+            topics.forEach((topic, index) => {
+                const row = document.createElement('tr');
+                row.className = 'topic-row';
+                row.dataset.index = index;
+
+                const currentPayloadValue = topic.payloadValues.find(pv => pv.value === topic.currentPayload);
+                const displayText = currentPayloadValue ? currentPayloadValue.display : (topic.currentPayload || '');
+                const rowColor = currentPayloadValue ? currentPayloadValue.color : '#ffffff';
+
+                if (rowColor && rowColor !== '#ffffff') {
+                    row.style.backgroundColor = rowColor;
+                }
+
+                const functionText = topic.functionType ?
+                    `${getFunctionDisplayName(topic.functionType)} (${topic.functionEnabled ? 'ON' : 'OFF'})` : '';
+
+                row.innerHTML = `
+                    <td>${topic.label}</td>
+                    <td>${displayText}</td>
+                    <td>${topic.name}</td>
+                    <td>${topic.currentPayload || ''}</td>
+                    <td>
+                        ${topic.functionType ? `<span class="function-toggle ${topic.functionEnabled ? 'function-active' : 'function-inactive'}" data-index="${index}">
+                            ${getFunctionDisplayName(topic.functionType)}
+                        </span>` : ''}
+                    </td>
+                `;
+
+                // Add event listeners
+                row.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    showContextMenu(e, index);
+                });
+
+                const functionToggle = row.querySelector('.function-toggle');
+                if (functionToggle) {
+                    functionToggle.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        toggleFunction(index);
+                    });
+                }
+
+                tbody.appendChild(row);
+            });
+        }
+
+        function getFunctionDisplayName(functionType) {
+            switch (functionType) {
+                case 'transfer': return '転送';
+                case 'convert': return '変換';
+                case 'cycle': return '循環';
+                default: return '';
+            }
+        }
+
+        function updateTopicDisplay(topicName, payload) {
+            const topic = topics.find(t => t.name === topicName);
+            if (topic) {
+                topic.currentPayload = payload;
+                saveTopics();
+                renderTopics();
+            }
+        }
+
+        function toggleFunction(index) {
+            topics[index].functionEnabled = !topics[index].functionEnabled;
+            saveTopics();
+            renderTopics();
+        }
+
+        // Context menu
+        function showContextMenu(e, index) {
+            selectedRow = index;
+            const contextMenu = document.getElementById('contextMenu');
+            contextMenu.style.left = e.pageX + 'px';
+            contextMenu.style.top = e.pageY + 'px';
+            contextMenu.classList.remove('d-none');
+        }
+
+        function hideContextMenu() {
+            document.getElementById('contextMenu').classList.add('d-none');
+            selectedRow = null;
+        }
+
+        function editSelectedTopic() {
+            if (selectedRow !== null) {
+                currentTopicIndex = selectedRow;
+                showTopicModal(topics[selectedRow]);
+            }
+            hideContextMenu();
+        }
+
+        function deleteSelectedTopic() {
+            if (selectedRow !== null) {
+                if (confirm('このトピックを削除しますか？')) {
+                    topics.splice(selectedRow, 1);
+                    saveTopics();
+                    renderTopics();
+                }
+            }
+            hideContextMenu();
+        }
+
+        // Data persistence
+        function saveSettings() {
+            const settings = {
+                mqttHost: document.getElementById('mqttHost').value,
+                mqttPort: document.getElementById('mqttPort').value,
+                mqttUsername: document.getElementById('mqttUsername').value,
+                mqttPassword: document.getElementById('mqttPassword').value
+            };
+
+            localStorage.setItem('mqttPatcherSettings', JSON.stringify(settings));
+        }
+
+        function loadSettings() {
+            const settings = localStorage.getItem('mqttPatcherSettings');
+            if (settings) {
+                const parsed = JSON.parse(settings);
+                document.getElementById('mqttHost').value = parsed.mqttHost || '';
+                document.getElementById('mqttPort').value = parsed.mqttPort || '8083';
+                document.getElementById('mqttUsername').value = parsed.mqttUsername || '';
+                document.getElementById('mqttPassword').value = parsed.mqttPassword || '';
+            }
+        }
+
+        function saveTopics() {
+            localStorage.setItem('mqttPatcherTopics', JSON.stringify(topics));
+        }
+
+        function loadTopics() {
+            const saved = localStorage.getItem('mqttPatcherTopics');
+            if (saved) {
+                topics = JSON.parse(saved);
+            }
+        }
+
+        function exportData() {
+            const data = {
+                topics: topics,
+                settings: JSON.parse(localStorage.getItem('mqttPatcherSettings') || '{}')
+            };
+            document.getElementById('dataTextArea').value = JSON.stringify(data, null, 2);
+        }
+
+        function importData() {
+            try {
+                const data = JSON.parse(document.getElementById('dataTextArea').value);
+                if (data.topics) {
+                    topics = data.topics;
+                    saveTopics();
+                    renderTopics();
+                }
+                if (data.settings) {
+                    localStorage.setItem('mqttPatcherSettings', JSON.stringify(data.settings));
+                    loadSettings();
+                }
+                alert('データをインポートしました');
+            } catch (error) {
+                alert('データの形式が正しくありません');
+            }
+        }
+    </script>
+</body>
+</html>
