@@ -14,7 +14,7 @@ MQTT Patcher is a web application that monitors MQTT topics and processes receiv
   - Display: Display text corresponding to payload values
   - Topic: MQTT topic name
   - Payload: Current payload value (editable by clicking)
-  - Function: ON/OFF status of configured functions
+  - Function: ON/OFF status of configured functions (monitoring always continues)
 
 - **CRUD Operations**:
   - Add Topic: Floating action button (top-right)
@@ -62,6 +62,9 @@ MQTT Patcher is a web application that monitors MQTT topics and processes receiv
 - **Auto-subscribe**: Automatically subscribes to configured topics
 - **Status Indicator**: Fixed position indicator (top-right corner)
 - **Real-time Updates**: Live payload value updates and color changes
+- **Function Control**: Individual on/off control for each topic's processing functions
+  - ON (Green): Messages are processed and functions execute
+  - OFF (Gray): Messages are monitored and displayed only, no processing
 
 ### Data Management
 - **Auto-save**: All settings saved to localStorage automatically
@@ -107,7 +110,9 @@ MQTT Patcher is a web application that monitors MQTT topics and processes receiv
 
 ### 3. Operation
 - **Real-time Monitoring**: View live message updates in the table
-- **Function Toggle**: Click function buttons to enable/disable
+- **Function Toggle**: Click function buttons to enable/disable processing (monitoring continues)
+  - Green (ON): Functions execute and process messages
+  - Gray (OFF): Monitor only, no message processing
 - **Quick Publish**: Right-click rows to publish predefined values
 - **Edit Payloads**: Click payload cells to edit and publish directly
 - **Reorder Topics**: Drag rows using the grip handle
@@ -134,6 +139,8 @@ Previous Payload: "prev"
 
 When current value is "dim" and "next" is received, "bright" will be published.
 
+**Function Control**: Toggle OFF to monitor light status without affecting the cycling behavior.
+
 ### Convert Function Example
 ```
 Label: Temperature Sensor
@@ -144,6 +151,8 @@ Payload Values:
 Function: Convert
 Target Topic: home/status/comfort
 Default Value: "unknown"
+
+**Function Control**: Disable to monitor temperature readings without triggering comfort control messages.
 ```
 
 ## Data Format

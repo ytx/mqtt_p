@@ -906,22 +906,24 @@
         // Message handling
         function handleMessage(topic, payload) {
             const topicConfig = topics.find(t => t.name === topic);
-            if (!topicConfig || !topicConfig.functionEnabled) return;
+            if (!topicConfig) return;
 
-            // Update display
+            // Always update display regardless of function enabled status
             updateTopicDisplay(topic, payload);
 
-            // Execute function
-            switch (topicConfig.functionType) {
-                case 'transfer':
-                    handleTransfer(topicConfig, payload);
-                    break;
-                case 'convert':
-                    handleConvert(topicConfig, payload);
-                    break;
-                case 'cycle':
-                    handleCycle(topicConfig, payload);
-                    break;
+            // Execute function only if enabled
+            if (topicConfig.functionEnabled && topicConfig.functionType) {
+                switch (topicConfig.functionType) {
+                    case 'transfer':
+                        handleTransfer(topicConfig, payload);
+                        break;
+                    case 'convert':
+                        handleConvert(topicConfig, payload);
+                        break;
+                    case 'cycle':
+                        handleCycle(topicConfig, payload);
+                        break;
+                }
             }
         }
 
