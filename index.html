@@ -14,8 +14,11 @@
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            display: inline-block;
-            margin-right: 5px;
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            box-shadow: 0 0 3px rgba(0,0,0,0.3);
         }
         .status-connected {
             background-color: #28a745;
@@ -57,39 +60,521 @@
         .context-menu-item:last-child {
             border-bottom: none;
         }
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 5px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            position: relative;
+        }
+        .color-option:hover {
+            border-color: #007bff;
+            transform: scale(1.1);
+        }
+        .color-option.selected {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0,123,255,0.5);
+        }
+        .color-option::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: none;
+        }
+        .color-option.selected::after {
+            display: block;
+            background-color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.3);
+        }
+        .color-preview {
+            transition: all 0.2s ease;
+        }
+        .color-preview:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .color-palette-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .color-palette-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        /* Override Bootstrap table colors with high specificity */
+        .table.table-striped > tbody > tr.topic-row-colored {
+            --bs-table-bg: var(--row-bg-color) !important;
+            --bs-table-color: var(--row-text-color) !important;
+            background-color: var(--row-bg-color) !important;
+            background: var(--row-bg-color) !important;
+            color: var(--row-text-color) !important;
+        }
+
+        .table.table-striped > tbody > tr.topic-row-colored > td {
+            --bs-table-bg: var(--row-bg-color) !important;
+            --bs-table-color: var(--row-text-color) !important;
+            background-color: var(--row-bg-color) !important;
+            background: var(--row-bg-color) !important;
+            color: var(--row-text-color) !important;
+        }
+
+        .table.table-striped > tbody > tr.topic-row-colored:nth-of-type(odd) {
+            --bs-table-striped-bg: var(--row-bg-color) !important;
+            background-color: var(--row-bg-color) !important;
+            background: var(--row-bg-color) !important;
+        }
+
+        .table.table-striped > tbody > tr.topic-row-colored:nth-of-type(odd) > td {
+            --bs-table-bg: var(--row-bg-color) !important;
+            --bs-table-color: var(--row-text-color) !important;
+            --bs-table-striped-bg: var(--row-bg-color) !important;
+            background-color: var(--row-bg-color) !important;
+            background: var(--row-bg-color) !important;
+            color: var(--row-text-color) !important;
+        }
+
+        /* Dark mode overrides for colored rows */
+        [data-theme="dark"] .table > :not(caption) > * > tr.topic-row-colored > * {
+            background-color: var(--row-bg-color) !important;
+            color: var(--row-text-color) !important;
+        }
+
+        /* Additional dark mode row color overrides */
+        [data-theme="dark"] .table.table-striped > tbody > tr.topic-row-colored {
+            --bs-table-bg: var(--row-bg-color) !important;
+            --bs-table-color: var(--row-text-color) !important;
+            background-color: var(--row-bg-color) !important;
+            background: var(--row-bg-color) !important;
+            color: var(--row-text-color) !important;
+        }
+
+        [data-theme="dark"] .table.table-striped > tbody > tr.topic-row-colored > td {
+            --bs-table-bg: var(--row-bg-color) !important;
+            --bs-table-color: var(--row-text-color) !important;
+            background-color: var(--row-bg-color) !important;
+            background: var(--row-bg-color) !important;
+            color: var(--row-text-color) !important;
+        }
+
+        [data-theme="dark"] .table.table-striped > tbody > tr.topic-row-colored:nth-of-type(odd) {
+            --bs-table-striped-bg: var(--row-bg-color) !important;
+            background-color: var(--row-bg-color) !important;
+            background: var(--row-bg-color) !important;
+        }
+
+        [data-theme="dark"] .table.table-striped > tbody > tr.topic-row-colored:nth-of-type(odd) > td {
+            --bs-table-bg: var(--row-bg-color) !important;
+            --bs-table-color: var(--row-text-color) !important;
+            --bs-table-striped-bg: var(--row-bg-color) !important;
+            background-color: var(--row-bg-color) !important;
+            background: var(--row-bg-color) !important;
+            color: var(--row-text-color) !important;
+        }
+
+        /* Payload editing styles */
+        .payload-cell {
+            cursor: pointer;
+            position: relative;
+        }
+
+        .payload-cell:hover {
+            background-color: rgba(0, 123, 255, 0.1) !important;
+        }
+
+        .payload-edit-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 4px;
+            padding: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .payload-edit-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: inherit;
+            font-family: inherit;
+        }
+
+        .payload-edit-select {
+            width: 100%;
+            border: none;
+            outline: none;
+            background: white;
+            font-size: inherit;
+            font-family: inherit;
+            margin-bottom: 5px;
+        }
+
+        .payload-edit-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .payload-edit-btn {
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            background: white;
+        }
+
+        .payload-edit-btn.save {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .payload-edit-btn.cancel {
+            background: #6c757d;
+            color: white;
+            border-color: #6c757d;
+        }
+
+        /* Floating action buttons */
+        .fab {
+            position: fixed;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            background: transparent;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            text-decoration: none;
+        }
+
+        .fab-add {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            color: #007bff;
+        }
+
+        .fab-add:hover {
+            background: rgba(0, 123, 255, 0.1);
+            color: #0056b3;
+        }
+
+        .fab-settings {
+            bottom: 20px;
+            right: 20px;
+            color: #6c757d;
+        }
+
+        .fab-settings:hover {
+            background: rgba(108, 117, 125, 0.1);
+            color: #495057;
+        }
+
+        .fab-github {
+            bottom: 20px;
+            left: 20px;
+            color: #333;
+        }
+
+        .fab-github:hover {
+            background: rgba(51, 51, 51, 0.1);
+            color: #000;
+        }
+
+        /* Drag and Drop styles */
+        .topic-row {
+            transition: all 0.2s ease;
+        }
+
+        .topic-row.dragging {
+            opacity: 0.5;
+            transform: rotate(2deg);
+            z-index: 1000;
+        }
+
+        .topic-row.drag-over {
+            border-top: 3px solid #007bff;
+        }
+
+        .drag-handle {
+            cursor: grab;
+            color: #6c757d;
+            padding: 0 8px;
+        }
+
+        .drag-handle:hover {
+            color: #007bff;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        /* Dark mode styles */
+        [data-theme="dark"] {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        [data-theme="dark"] .table {
+            --bs-table-bg: #2d2d2d;
+            --bs-table-striped-bg: #343434;
+            --bs-table-hover-bg: #3a3a3a;
+            --bs-table-color: #e0e0e0;
+            background-color: #2d2d2d !important;
+            color: #e0e0e0 !important;
+        }
+
+        [data-theme="dark"] .table td,
+        [data-theme="dark"] .table th {
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+
+        [data-theme="dark"] .table > :not(caption) > * > *:not(.topic-row-colored *) {
+            background-color: var(--bs-table-bg) !important;
+            color: #e0e0e0 !important;
+        }
+
+        [data-theme="dark"] .table-dark {
+            --bs-table-bg: #1f1f1f !important;
+            --bs-table-border-color: #444 !important;
+            --bs-table-color: #e0e0e0 !important;
+            background-color: #1f1f1f !important;
+            color: #e0e0e0 !important;
+        }
+
+        [data-theme="dark"] .table-dark td,
+        [data-theme="dark"] .table-dark th {
+            background-color: #1f1f1f !important;
+            color: #e0e0e0 !important;
+            border-color: #444 !important;
+        }
+
+        [data-theme="dark"] .modal-content {
+            background-color: #2d2d2d;
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+
+        [data-theme="dark"] .form-control {
+            background-color: #3a3a3a;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        [data-theme="dark"] .form-control:focus {
+            background-color: #3a3a3a;
+            border-color: #007bff;
+            color: #e0e0e0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        [data-theme="dark"] .form-select {
+            background-color: #3a3a3a;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        [data-theme="dark"] .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        [data-theme="dark"] .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        [data-theme="dark"] .btn-outline-primary {
+            color: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        [data-theme="dark"] .btn-outline-primary:hover {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: #fff;
+        }
+
+        [data-theme="dark"] .context-menu {
+            background: #2d2d2d;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        [data-theme="dark"] .context-menu-item:hover {
+            background-color: #3a3a3a;
+        }
+
+        [data-theme="dark"] .payload-edit-container {
+            background: #2d2d2d;
+            border-color: #007bff;
+        }
+
+        [data-theme="dark"] .color-palette-container {
+            background: #2d2d2d;
+            color: #e0e0e0;
+        }
+
+        [data-theme="dark"] .nav-tabs .nav-link {
+            color: #adb5bd;
+            background-color: transparent;
+            border-color: #555;
+        }
+
+        [data-theme="dark"] .nav-tabs .nav-link.active {
+            color: #e0e0e0;
+            background-color: #2d2d2d;
+            border-color: #555 #555 #2d2d2d;
+        }
+
+        [data-theme="dark"] .fab {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="dark"] .container-fluid {
+            background-color: #1a1a1a;
+        }
+
+        [data-theme="dark"] .function-toggle {
+            background-color: #3a3a3a !important;
+            color: #e0e0e0 !important;
+        }
+
+        [data-theme="dark"] .function-active {
+            background-color: #28a745 !important;
+            color: white !important;
+        }
+
+        [data-theme="dark"] .function-inactive {
+            background-color: #6c757d !important;
+            color: white !important;
+        }
+
+        [data-theme="dark"] .payload-cell:hover {
+            background-color: rgba(0, 123, 255, 0.2) !important;
+        }
+
+        [data-theme="dark"] .topic-row.drag-over {
+            border-top-color: #007bff !important;
+        }
+
+        [data-theme="dark"] .drag-handle {
+            color: #adb5bd;
+        }
+
+        [data-theme="dark"] .drag-handle:hover {
+            color: #007bff;
+        }
+
+        /* Dark mode title and headers */
+        [data-theme="dark"] h1,
+        [data-theme="dark"] h2,
+        [data-theme="dark"] h3,
+        [data-theme="dark"] h4,
+        [data-theme="dark"] h5,
+        [data-theme="dark"] h6 {
+            color: #e0e0e0 !important;
+        }
+
+        [data-theme="dark"] .modal-title {
+            color: #e0e0e0 !important;
+        }
+
+        [data-theme="dark"] .form-label {
+            color: #e0e0e0 !important;
+        }
+
+        /* Theme toggle button */
+        .fab-theme {
+            bottom: 20px;
+            right: 90px;
+            color: #ffc107;
+        }
+
+        .fab-theme:hover {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffb300;
+        }
     </style>
 </head>
 <body>
+    <!-- Status indicator -->
+    <span class="status-indicator status-disconnected" id="connectionStatus"></span>
+
     <div class="container-fluid mt-3">
         <!-- Header -->
         <div class="row mb-3">
             <div class="col">
-                <h2>
-                    <span class="status-indicator status-disconnected" id="connectionStatus"></span>
-                    MQTT Patcher
-                </h2>
+                <h2>MQTT Patcher</h2>
             </div>
             <div class="col-auto">
-                <button class="btn btn-outline-primary me-2" id="settingsBtn">
-                    <i class="bi bi-gear"></i> 設定
-                </button>
-                <button class="btn btn-primary" id="addTopicBtn">
-                    <i class="bi bi-plus"></i> 新規登録
-                </button>
+                <!-- Buttons moved to floating action buttons -->
             </div>
         </div>
 
         <!-- Topic List Table -->
         <div class="row">
             <div class="col">
-                <table class="table table-striped table-hover">
+                <table class="table table-striped table-hover":
                     <thead class="table-dark">
                         <tr>
-                            <th>ラベル</th>
-                            <th>表示</th>
-                            <th>トピック</th>
-                            <th>ペイロード</th>
-                            <th>機能</th>
+                            <th width="30"></th>
+                            <th>Label</th>
+                            <th>Display</th>
+                            <th>Topic</th>
+                            <th>Payload</th>
+                            <th>Function</th>
                         </tr>
                     </thead>
                     <tbody id="topicTableBody">
@@ -100,10 +585,28 @@
         </div>
     </div>
 
+    <!-- Floating Action Buttons -->
+    <button class="fab fab-add" id="addTopicBtn" title="Add Topic">
+        <i class="bi bi-plus"></i>
+    </button>
+
+    <button class="fab fab-theme" id="themeBtn" title="Toggle Theme">
+        <i class="bi bi-sun" id="themeIcon"></i>
+    </button>
+
+    <button class="fab fab-settings" id="settingsBtn" title="Settings">
+        <i class="bi bi-gear"></i>
+    </button>
+
+    <a href="https://github.com/ytx/mqtt_p" target="_blank" class="fab fab-github" title="GitHub">
+        <i class="bi bi-github"></i>
+    </a>
+
     <!-- Context Menu -->
     <div class="context-menu d-none" id="contextMenu">
-        <div class="context-menu-item" id="editTopic">編集</div>
-        <div class="context-menu-item" id="deleteTopic">削除</div>
+        <div id="payloadMenuItems"></div>
+        <div class="context-menu-item" id="editTopic">Edit</div>
+        <div class="context-menu-item" id="deleteTopic">Delete</div>
     </div>
 
     <!-- Settings Modal -->
@@ -111,56 +614,56 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">設定</h5>
+                    <h5 class="modal-title">Settings</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <ul class="nav nav-tabs" id="settingsTabs">
                         <li class="nav-item">
-                            <a class="nav-link active" data-bs-toggle="tab" href="#mqttTab">MQTT接続</a>
+                            <a class="nav-link active" data-bs-toggle="tab" href="#mqttTab">MQTT Connection</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="tab" href="#dataTab">データ管理</a>
+                            <a class="nav-link" data-bs-toggle="tab" href="#dataTab">Data Management</a>
                         </li>
                     </ul>
                     <div class="tab-content mt-3">
                         <div class="tab-pane fade show active" id="mqttTab">
                             <form id="mqttSettingsForm">
                                 <div class="mb-3">
-                                    <label for="mqttHost" class="form-label">ホスト</label>
+                                    <label for="mqttHost" class="form-label">Host</label>
                                     <input type="text" class="form-control" id="mqttHost" placeholder="broker.example.com">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="mqttPort" class="form-label">ポート</label>
+                                    <label for="mqttPort" class="form-label">Port</label>
                                     <input type="number" class="form-control" id="mqttPort" value="8083">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="mqttUsername" class="form-label">ユーザー名</label>
+                                    <label for="mqttUsername" class="form-label">Username</label>
                                     <input type="text" class="form-control" id="mqttUsername">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="mqttPassword" class="form-label">パスワード</label>
+                                    <label for="mqttPassword" class="form-label">Password</label>
                                     <input type="password" class="form-control" id="mqttPassword">
                                 </div>
-                                <button type="button" class="btn btn-primary" id="connectBtn">接続</button>
-                                <button type="button" class="btn btn-secondary" id="disconnectBtn">切断</button>
+                                <button type="button" class="btn btn-primary" id="connectBtn">Connect</button>
+                                <button type="button" class="btn btn-secondary" id="disconnectBtn">Disconnect</button>
                             </form>
                         </div>
                         <div class="tab-pane fade" id="dataTab">
                             <div class="mb-3">
-                                <button type="button" class="btn btn-outline-primary" id="exportBtn">エクスポート</button>
-                                <button type="button" class="btn btn-outline-success" id="importBtn">インポート</button>
+                                <button type="button" class="btn btn-outline-primary" id="exportBtn">Export</button>
+                                <button type="button" class="btn btn-outline-success" id="importBtn">Import</button>
                             </div>
                             <div class="mb-3">
-                                <label for="dataTextArea" class="form-label">設定データ</label>
+                                <label for="dataTextArea" class="form-label">Configuration Data</label>
                                 <textarea class="form-control" id="dataTextArea" rows="10"></textarea>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
-                    <button type="button" class="btn btn-primary" id="saveSettingsBtn">保存</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveSettingsBtn">Save</button>
                 </div>
             </div>
         </div>
@@ -171,28 +674,28 @@
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="topicModalTitle">トピック設定</h5>
+                    <h5 class="modal-title" id="topicModalTitle">Topic Configuration</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="topicForm">
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="topicLabel" class="form-label">ラベル</label>
+                                <label for="topicLabel" class="form-label">Label</label>
                                 <input type="text" class="form-control" id="topicLabel" required>
                             </div>
                             <div class="col-md-6">
-                                <label for="topicName" class="form-label">トピック名</label>
+                                <label for="topicName" class="form-label">Topic Name</label>
                                 <input type="text" class="form-control" id="topicName" required>
                             </div>
                         </div>
 
                         <!-- Payload Values Section -->
                         <div class="mb-4">
-                            <h6>ペイロード値設定</h6>
+                            <h6>Payload Value Settings</h6>
                             <div class="mb-2">
                                 <button type="button" class="btn btn-sm btn-outline-primary" id="addPayloadBtn">
-                                    <i class="bi bi-plus"></i> ペイロード値追加
+                                    <i class="bi bi-plus"></i> Add Payload Value
                                 </button>
                             </div>
                             <div id="payloadValues">
@@ -202,20 +705,20 @@
 
                         <!-- Function Settings Section -->
                         <div class="mb-4">
-                            <h6>機能設定</h6>
+                            <h6>Function Settings</h6>
                             <div class="mb-3">
                                 <select class="form-select" id="functionType">
-                                    <option value="">機能なし</option>
-                                    <option value="transfer">転送</option>
-                                    <option value="convert">変換</option>
-                                    <option value="cycle">循環</option>
+                                    <option value="">No Function</option>
+                                    <option value="transfer">Transfer</option>
+                                    <option value="convert">Convert</option>
+                                    <option value="cycle">Cycle</option>
                                 </select>
                             </div>
 
                             <!-- Transfer Settings -->
                             <div id="transferSettings" class="d-none">
                                 <div class="mb-3">
-                                    <label for="transferTopic" class="form-label">転送先トピック</label>
+                                    <label for="transferTopic" class="form-label">Target Topic</label>
                                     <input type="text" class="form-control" id="transferTopic">
                                 </div>
                             </div>
@@ -224,11 +727,11 @@
                             <div id="convertSettings" class="d-none">
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        <label for="convertTopic" class="form-label">変換先トピック</label>
+                                        <label for="convertTopic" class="form-label">Target Topic</label>
                                         <input type="text" class="form-control" id="convertTopic">
                                     </div>
                                     <div class="col-md-6">
-                                        <label for="convertDefault" class="form-label">デフォルト値</label>
+                                        <label for="convertDefault" class="form-label">Default Value</label>
                                         <input type="text" class="form-control" id="convertDefault">
                                     </div>
                                 </div>
@@ -238,11 +741,11 @@
                             <div id="cycleSettings" class="d-none">
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        <label for="cycleNextPayload" class="form-label">進むペイロード</label>
+                                        <label for="cycleNextPayload" class="form-label">Next Payload</label>
                                         <input type="text" class="form-control" id="cycleNextPayload">
                                     </div>
                                     <div class="col-md-6">
-                                        <label for="cyclePrevPayload" class="form-label">戻るペイロード（任意）</label>
+                                        <label for="cyclePrevPayload" class="form-label">Previous Payload (Optional)</label>
                                         <input type="text" class="form-control" id="cyclePrevPayload">
                                     </div>
                                 </div>
@@ -251,8 +754,8 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-                    <button type="button" class="btn btn-primary" id="saveTopicBtn">保存</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveTopicBtn">Save</button>
                 </div>
             </div>
         </div>
@@ -267,12 +770,27 @@
         let currentTopicIndex = -1;
         let selectedRow = null;
 
+        // Color palette definition
+        const colorPalette = [
+            '#ffffff', '#f8f9fa', '#e9ecef', '#dee2e6',
+            '#adb5bd', '#6c757d', '#495057', '#343a40',
+            '#212529', '#000000', '#ff0000', '#dc3545',
+            '#fd7e14', '#ffc107', '#28a745', '#20c997',
+            '#17a2b8', '#007bff', '#6f42c1', '#e83e8c',
+            '#ffebee', '#fff3e0', '#f3e5f5', '#e8f5e8',
+            '#e3f2fd', '#fce4ec', '#ffcdd2', '#d7ccc8'
+        ];
+
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
             loadSettings();
             loadTopics();
+            loadTheme();
             renderTopics();
             initializeEventListeners();
+
+            // Auto-connect if settings are available
+            setTimeout(autoConnectMQTT, 1000); // Delay to ensure UI is ready
         });
 
         // Event listeners
@@ -308,6 +826,18 @@
             document.addEventListener('click', hideContextMenu);
             document.getElementById('editTopic').addEventListener('click', editSelectedTopic);
             document.getElementById('deleteTopic').addEventListener('click', deleteSelectedTopic);
+
+            // Theme toggle
+            document.getElementById('themeBtn').addEventListener('click', toggleTheme);
+        }
+
+        // Auto-connect MQTT if settings are available
+        function autoConnectMQTT() {
+            const host = document.getElementById('mqttHost').value;
+            if (host && host.trim() !== '' && !mqttClient) {
+                console.log('Auto-connecting to MQTT...');
+                connectMQTT();
+            }
         }
 
         // MQTT connection management
@@ -318,7 +848,7 @@
             const password = document.getElementById('mqttPassword').value;
 
             if (!host) {
-                alert('ホストを入力してください');
+                alert('Please enter a host');
                 return;
             }
 
@@ -331,6 +861,7 @@
             mqttClient = mqtt.connect(`ws://${host}:${port}/mqtt`, options);
 
             mqttClient.on('connect', function() {
+                console.log('MQTT connected successfully');
                 document.getElementById('connectionStatus').className = 'status-indicator status-connected';
                 subscribeToTopics();
             });
@@ -342,10 +873,15 @@
             mqttClient.on('error', function(error) {
                 console.error('MQTT Error:', error);
                 document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+                // Reset client reference on error
+                mqttClient = null;
             });
 
             mqttClient.on('close', function() {
+                console.log('MQTT connection closed');
                 document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+                // Reset client reference on close
+                mqttClient = null;
             });
         }
 
@@ -446,7 +982,7 @@
 
             if (topicData) {
                 // Edit mode
-                document.getElementById('topicModalTitle').textContent = 'トピック編集';
+                document.getElementById('topicModalTitle').textContent = 'Edit Topic';
                 document.getElementById('topicLabel').value = topicData.label || '';
                 document.getElementById('topicName').value = topicData.name || '';
                 document.getElementById('functionType').value = topicData.functionType || '';
@@ -477,7 +1013,7 @@
                 }
             } else {
                 // Add mode
-                document.getElementById('topicModalTitle').textContent = '新規トピック';
+                document.getElementById('topicModalTitle').textContent = 'New Topic';
                 addPayloadEntry(); // Add one empty entry
             }
 
@@ -490,16 +1026,31 @@
             entry.className = 'row mb-2 payload-entry';
             entry.innerHTML = `
                 <div class="col-md-3">
-                    <input type="text" class="form-control payload-value" placeholder="ペイロード値" value="${data?.value || ''}">
+                    <input type="text" class="form-control payload-value" placeholder="Payload Value" value="${data?.value || ''}">
                 </div>
                 <div class="col-md-3">
-                    <input type="text" class="form-control payload-display" placeholder="表示文字列" value="${data?.display || ''}">
+                    <input type="text" class="form-control payload-display" placeholder="Display Text" value="${data?.display || ''}">
                 </div>
                 <div class="col-md-2">
-                    <input type="color" class="form-control form-control-color payload-color" value="${data?.color || '#ffffff'}">
+                    <div class="mb-2">
+                        <label class="form-label small">Background</label>
+                        <div class="d-flex align-items-center">
+                            <div class="color-preview" style="width: 25px; height: 25px; border: 1px solid #ddd; border-radius: 4px; background-color: ${data?.backgroundColor || '#ffffff'}; margin-right: 8px; cursor: pointer;" data-target="backgroundColor"></div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary color-palette-btn" data-target="backgroundColor" style="font-size: 0.75rem; padding: 2px 8px;">Select</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label small">Text Color</label>
+                        <div class="d-flex align-items-center">
+                            <div class="color-preview" style="width: 25px; height: 25px; border: 1px solid #ddd; border-radius: 4px; background-color: ${data?.textColor || '#000000'}; margin-right: 8px; cursor: pointer;" data-target="textColor"></div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary color-palette-btn" data-target="textColor" style="font-size: 0.75rem; padding: 2px 8px;">Select</button>
+                        </div>
+                    </div>
+                    <input type="hidden" class="payload-background-color" value="${data?.backgroundColor || '#ffffff'}">
+                    <input type="hidden" class="payload-text-color" value="${data?.textColor || '#000000'}">
                 </div>
-                <div class="col-md-3">
-                    <input type="text" class="form-control convert-value" placeholder="変換値" value="${data?.convertValue || ''}">
+                <div class="col-md-2">
+                    <input type="text" class="form-control convert-value" placeholder="Convert Value" value="${data?.convertValue || ''}">
                 </div>
                 <div class="col-md-1">
                     <button type="button" class="btn btn-outline-danger btn-sm remove-payload">
@@ -510,6 +1061,23 @@
 
             entry.querySelector('.remove-payload').addEventListener('click', function() {
                 entry.remove();
+            });
+
+            // Add color palette event listeners
+            const colorPaletteBtns = entry.querySelectorAll('.color-palette-btn');
+            colorPaletteBtns.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showColorPalette(this, entry);
+                });
+            });
+
+            const colorPreviews = entry.querySelectorAll('.color-preview');
+            colorPreviews.forEach(preview => {
+                preview.addEventListener('click', function() {
+                    const btn = this.parentElement.querySelector('.color-palette-btn');
+                    showColorPalette(btn, entry);
+                });
             });
 
             container.appendChild(entry);
@@ -549,14 +1117,16 @@
             payloadEntries.forEach(entry => {
                 const value = entry.querySelector('.payload-value').value;
                 const display = entry.querySelector('.payload-display').value;
-                const color = entry.querySelector('.payload-color').value;
+                const backgroundColor = entry.querySelector('.payload-background-color').value;
+                const textColor = entry.querySelector('.payload-text-color').value;
                 const convertValue = entry.querySelector('.convert-value').value;
 
                 if (value) {
                     topicData.payloadValues.push({
                         value,
                         display: display || value,
-                        color,
+                        backgroundColor,
+                        textColor,
                         convertValue
                     });
                 }
@@ -605,20 +1175,22 @@
 
                 const currentPayloadValue = topic.payloadValues.find(pv => pv.value === topic.currentPayload);
                 const displayText = currentPayloadValue ? currentPayloadValue.display : (topic.currentPayload || '');
-                const rowColor = currentPayloadValue ? currentPayloadValue.color : '#ffffff';
-
-                if (rowColor && rowColor !== '#ffffff') {
-                    row.style.backgroundColor = rowColor;
-                }
+                const backgroundColor = currentPayloadValue ? currentPayloadValue.backgroundColor : '#ffffff';
+                const textColor = currentPayloadValue ? currentPayloadValue.textColor : '#000000';
 
                 const functionText = topic.functionType ?
                     `${getFunctionDisplayName(topic.functionType)} (${topic.functionEnabled ? 'ON' : 'OFF'})` : '';
 
                 row.innerHTML = `
+                    <td class="drag-handle" title="Drag to reorder">
+                        <i class="bi bi-grip-vertical"></i>
+                    </td>
                     <td>${topic.label}</td>
                     <td>${displayText}</td>
                     <td>${topic.name}</td>
-                    <td>${topic.currentPayload || ''}</td>
+                    <td class="payload-cell" data-index="${index}">
+                        <span class="payload-value">${topic.currentPayload || ''}</span>
+                    </td>
                     <td>
                         ${topic.functionType ? `<span class="function-toggle ${topic.functionEnabled ? 'function-active' : 'function-inactive'}" data-index="${index}">
                             ${getFunctionDisplayName(topic.functionType)}
@@ -626,11 +1198,70 @@
                     </td>
                 `;
 
+                // Make row draggable
+                row.draggable = true;
+                row.addEventListener('dragstart', handleDragStart);
+                row.addEventListener('dragover', handleDragOver);
+                row.addEventListener('drop', handleDrop);
+                row.addEventListener('dragend', handleDragEnd);
+                row.addEventListener('dragenter', handleDragEnter);
+                row.addEventListener('dragleave', handleDragLeave);
+
+                // Apply colors after innerHTML is set
+                if (backgroundColor && backgroundColor !== '#ffffff') {
+                    row.classList.add('topic-row-colored');
+                    row.style.setProperty('--row-bg-color', backgroundColor);
+                    row.style.setProperty('--row-text-color', textColor);
+
+                    // Override Bootstrap CSS variables and apply directly
+                    row.style.setProperty('--bs-table-bg', backgroundColor, 'important');
+                    row.style.setProperty('--bs-table-color', textColor, 'important');
+                    row.style.setProperty('background-color', backgroundColor, 'important');
+                    row.style.setProperty('color', textColor, 'important');
+
+                    // Force apply colors to all cells
+                    const cells = row.querySelectorAll('td');
+                    cells.forEach(cell => {
+                        cell.style.setProperty('--bs-table-bg', backgroundColor, 'important');
+                        cell.style.setProperty('--bs-table-color', textColor, 'important');
+                        cell.style.setProperty('background-color', backgroundColor, 'important');
+                        cell.style.setProperty('color', textColor, 'important');
+                        cell.style.setProperty('background', backgroundColor, 'important');
+                    });
+                } else {
+                    row.classList.remove('topic-row-colored');
+                    row.style.removeProperty('--row-bg-color');
+                    row.style.removeProperty('--row-text-color');
+                    row.style.removeProperty('--bs-table-bg');
+                    row.style.removeProperty('--bs-table-color');
+                    row.style.removeProperty('background-color');
+                    row.style.removeProperty('color');
+
+                    // Remove forced colors from cells
+                    const cells = row.querySelectorAll('td');
+                    cells.forEach(cell => {
+                        cell.style.removeProperty('--bs-table-bg');
+                        cell.style.removeProperty('--bs-table-color');
+                        cell.style.removeProperty('background-color');
+                        cell.style.removeProperty('color');
+                        cell.style.removeProperty('background');
+                    });
+                }
+
                 // Add event listeners
                 row.addEventListener('contextmenu', function(e) {
                     e.preventDefault();
                     showContextMenu(e, index);
                 });
+
+                // Add payload edit listener
+                const payloadCell = row.querySelector('.payload-cell');
+                if (payloadCell) {
+                    payloadCell.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        showPayloadEditor(this, index);
+                    });
+                }
 
                 const functionToggle = row.querySelector('.function-toggle');
                 if (functionToggle) {
@@ -646,9 +1277,9 @@
 
         function getFunctionDisplayName(functionType) {
             switch (functionType) {
-                case 'transfer': return '転送';
-                case 'convert': return '変換';
-                case 'cycle': return '循環';
+                case 'transfer': return 'Transfer';
+                case 'convert': return 'Convert';
+                case 'cycle': return 'Cycle';
                 default: return '';
             }
         }
@@ -671,7 +1302,33 @@
         // Context menu
         function showContextMenu(e, index) {
             selectedRow = index;
+            const topic = topics[index];
             const contextMenu = document.getElementById('contextMenu');
+            const payloadMenuItems = document.getElementById('payloadMenuItems');
+
+            // Clear previous payload items
+            payloadMenuItems.innerHTML = '';
+
+            // Add payload value options if available
+            if (topic.payloadValues && topic.payloadValues.length > 0) {
+                topic.payloadValues.forEach(pv => {
+                    const item = document.createElement('div');
+                    item.className = 'context-menu-item';
+                    item.textContent = `Publish: ${pv.display || pv.value}`;
+                    item.addEventListener('click', function() {
+                        publishPayloadValue(index, pv.value);
+                        hideContextMenu();
+                    });
+                    payloadMenuItems.appendChild(item);
+                });
+
+                // Add separator
+                const separator = document.createElement('div');
+                separator.style.borderBottom = '1px solid #eee';
+                separator.style.margin = '5px 0';
+                payloadMenuItems.appendChild(separator);
+            }
+
             contextMenu.style.left = e.pageX + 'px';
             contextMenu.style.top = e.pageY + 'px';
             contextMenu.classList.remove('d-none');
@@ -692,13 +1349,27 @@
 
         function deleteSelectedTopic() {
             if (selectedRow !== null) {
-                if (confirm('このトピックを削除しますか？')) {
+                if (confirm('Delete this topic?')) {
                     topics.splice(selectedRow, 1);
                     saveTopics();
                     renderTopics();
                 }
             }
             hideContextMenu();
+        }
+
+        function publishPayloadValue(topicIndex, value) {
+            const topic = topics[topicIndex];
+            if (!topic || !mqttClient || !mqttClient.connected) return;
+
+            // Update current payload and publish
+            topic.currentPayload = value;
+            saveTopics();
+            mqttClient.publish(topic.name, value);
+            console.log(`Published: ${topic.name} = ${value}`);
+
+            // Update display
+            renderTopics();
         }
 
         // Data persistence
@@ -747,6 +1418,17 @@
             try {
                 const data = JSON.parse(document.getElementById('dataTextArea').value);
                 if (data.topics) {
+                    // Convert old color format to new format
+                    data.topics.forEach(topic => {
+                        if (topic.payloadValues) {
+                            topic.payloadValues.forEach(pv => {
+                                if (pv.color && !pv.backgroundColor) {
+                                    pv.backgroundColor = pv.color;
+                                    pv.textColor = '#000000';
+                                }
+                            });
+                        }
+                    });
                     topics = data.topics;
                     saveTopics();
                     renderTopics();
@@ -755,9 +1437,270 @@
                     localStorage.setItem('mqttPatcherSettings', JSON.stringify(data.settings));
                     loadSettings();
                 }
-                alert('データをインポートしました');
+                alert('Data imported successfully');
             } catch (error) {
-                alert('データの形式が正しくありません');
+                alert('Invalid data format');
+            }
+        }
+
+        // Color palette functions
+        function showColorPalette(button, entry) {
+            const target = button.dataset.target;
+            const currentColor = entry.querySelector(`.payload-${target.toLowerCase().replace('color', '')}-color`).value;
+
+            // Create modal overlay
+            const modal = document.createElement('div');
+            modal.className = 'color-palette-modal';
+            modal.innerHTML = `
+                <div class="color-palette-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">${target === 'backgroundColor' ? 'Select Background Color' : 'Select Text Color'}</h6>
+                        <button type="button" class="btn-close" aria-label="Close"></button>
+                    </div>
+                    <div class="color-palette" id="colorPalette">
+                        ${colorPalette.map(color =>
+                            `<div class="color-option ${color === currentColor ? 'selected' : ''}"
+                                 style="background-color: ${color}"
+                                 data-color="${color}"></div>`
+                        ).join('')}
+                    </div>
+                    <div class="mt-3 text-end">
+                        <button type="button" class="btn btn-secondary me-2" id="cancelColorBtn">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="selectColorBtn">Select</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+
+            let selectedColor = currentColor;
+
+            // Color option click events
+            modal.querySelectorAll('.color-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    modal.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedColor = this.dataset.color;
+                });
+            });
+
+            // Close button
+            modal.querySelector('.btn-close').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            // Cancel button
+            modal.querySelector('#cancelColorBtn').addEventListener('click', () => {
+                document.body.removeChild(modal);
+            });
+
+            // Select button
+            modal.querySelector('#selectColorBtn').addEventListener('click', () => {
+                updateEntryColor(entry, target, selectedColor);
+                document.body.removeChild(modal);
+            });
+
+            // Click outside to close
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            });
+        }
+
+        function updateEntryColor(entry, target, color) {
+            const preview = entry.querySelector(`[data-target="${target}"]`);
+            const hiddenInput = entry.querySelector(`.payload-${target.toLowerCase().replace('color', '')}-color`);
+
+            preview.style.backgroundColor = color;
+            hiddenInput.value = color;
+        }
+
+        // Payload editing functions
+        function showPayloadEditor(cell, topicIndex) {
+            const topic = topics[topicIndex];
+            if (!topic) return;
+
+            // Prevent multiple editors
+            if (cell.querySelector('.payload-edit-container')) return;
+
+            const currentValue = topic.currentPayload || '';
+
+            // Create editor container
+            const editorContainer = document.createElement('div');
+            editorContainer.className = 'payload-edit-container';
+
+            // Add only text input
+            const editorHTML = `
+                <input type="text" class="payload-edit-input" id="payloadInput_${topicIndex}"
+                       value="${currentValue}" placeholder="Enter payload value">
+                <div class="payload-edit-buttons">
+                    <button class="payload-edit-btn save">Publish</button>
+                </div>
+            `;
+
+            editorContainer.innerHTML = editorHTML;
+            cell.appendChild(editorContainer);
+
+            // Get elements
+            const input = editorContainer.querySelector('.payload-edit-input');
+            const saveBtn = editorContainer.querySelector('.save');
+
+            // Focus input and select all
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 50);
+
+            // Event listeners
+            saveBtn.addEventListener('click', function() {
+                savePayloadEdit(topicIndex);
+            });
+
+            // Handle Enter/Escape keys
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    savePayloadEdit(topicIndex);
+                } else if (e.key === 'Escape') {
+                    cancelPayloadEdit(topicIndex);
+                }
+            });
+
+            // Handle click outside to cancel
+            setTimeout(() => {
+                const outsideClickHandler = function(e) {
+                    if (!editorContainer.contains(e.target)) {
+                        cancelPayloadEdit(topicIndex);
+                        document.removeEventListener('click', outsideClickHandler);
+                    }
+                };
+                document.addEventListener('click', outsideClickHandler);
+            }, 100);
+        }
+
+        function savePayloadEdit(topicIndex) {
+            const topic = topics[topicIndex];
+            if (!topic) return;
+
+            const input = document.getElementById(`payloadInput_${topicIndex}`);
+            if (!input) return;
+
+            const newValue = input.value.trim();
+            const cell = input.closest('.payload-cell');
+
+            // Update topic data
+            topic.currentPayload = newValue;
+            saveTopics();
+
+            // Publish to MQTT if connected
+            if (mqttClient && mqttClient.connected && newValue !== '') {
+                mqttClient.publish(topic.name, newValue);
+                console.log(`Published: ${topic.name} = ${newValue}`);
+            }
+
+            // Remove editor and update display
+            cancelPayloadEdit(topicIndex);
+            renderTopics();
+        }
+
+        function cancelPayloadEdit(topicIndex) {
+            const editorContainer = document.getElementById(`payloadInput_${topicIndex}`)?.closest('.payload-edit-container');
+            if (editorContainer) {
+                editorContainer.remove();
+            }
+        }
+
+        // Drag and Drop functionality
+        let draggedElement = null;
+        let draggedIndex = null;
+
+        function handleDragStart(e) {
+            draggedElement = this;
+            draggedIndex = parseInt(this.dataset.index);
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.outerHTML);
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragEnter(e) {
+            if (this !== draggedElement) {
+                this.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+
+            if (this !== draggedElement) {
+                const dropIndex = parseInt(this.dataset.index);
+                reorderTopics(draggedIndex, dropIndex);
+            }
+            return false;
+        }
+
+        function handleDragEnd(e) {
+            // Clean up
+            const rows = document.querySelectorAll('.topic-row');
+            rows.forEach(row => {
+                row.classList.remove('dragging', 'drag-over');
+            });
+            draggedElement = null;
+            draggedIndex = null;
+        }
+
+        function reorderTopics(fromIndex, toIndex) {
+            if (fromIndex === toIndex) return;
+
+            // Remove the item from the array
+            const movedTopic = topics.splice(fromIndex, 1)[0];
+
+            // Insert it at the new position
+            topics.splice(toIndex, 0, movedTopic);
+
+            // Save and re-render
+            saveTopics();
+            renderTopics();
+
+            console.log(`Moved topic from position ${fromIndex} to ${toIndex}`);
+        }
+
+        // Theme management
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            updateThemeIcon(newTheme);
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const themeIcon = document.getElementById('themeIcon');
+            if (theme === 'dark') {
+                themeIcon.className = 'bi bi-moon';
+            } else {
+                themeIcon.className = 'bi bi-sun';
             }
         }
     </script>

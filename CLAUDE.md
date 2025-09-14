@@ -1,134 +1,176 @@
 # MQTT Patcher
 
-単一HTMLファイルで動作するMQTTメッセージ処理アプリケーション
+A single HTML file MQTT message processing application with modern UI and dark mode support.
 
-## 概要
+## Overview
 
-MQTT Patcherは、MQTTトピックを監視し、受信したメッセージに対して転送・変換・循環などの処理を行うWebアプリケーションです。設定したトピックを一覧表示し、リアルタイムでメッセージの状態を確認できます。
+MQTT Patcher is a web application that monitors MQTT topics and processes received messages through transfer, conversion, or cycling operations. It displays configured topics in a table format and allows real-time monitoring of message states.
 
-## 主な機能
+## Key Features
 
-### トピック管理
-- **一覧表示**: トピックをテーブル形式で表示
-  - ラベル: 任意の識別名
-  - 表示: ペイロード値に対応する表示文字列
-  - トピック: MQTTトピック名
-  - ペイロード: 現在のペイロード値
-  - 機能: 設定された機能のON/OFF状態
+### Topic Management
+- **Table Display**: Topics displayed in sortable table format
+  - Label: Custom identifier
+  - Display: Display text corresponding to payload values
+  - Topic: MQTT topic name
+  - Payload: Current payload value (editable by clicking)
+  - Function: ON/OFF status of configured functions
 
-- **CRUD操作**:
-  - 新規登録: 右上の「新規登録」ボタン
-  - 編集・削除: 行を右クリックしてコンテキストメニューから選択
+- **CRUD Operations**:
+  - Add Topic: Floating action button (top-right)
+  - Edit/Delete: Right-click on rows for context menu
+  - Quick Publish: Right-click to publish predefined payload values
 
-### 処理機能（排他選択）
+### Drag & Drop Reordering
+- **Row Sorting**: Drag rows by the grip handle to reorder topics
+- **Visual Feedback**: Smooth animations during drag operations
+- **Auto-save**: Order changes are automatically saved
 
-#### 1. 転送機能
-- 受信したペイロードをそのまま別のトピックにパブリッシュ
-- 設定項目: 転送先トピック
+### Processing Functions (Mutually Exclusive)
 
-#### 2. 変換機能
-- 受信したペイロードに対応する値を別のトピックにパブリッシュ
-- ペイロード値ごとに変換値を設定可能
-- 設定項目: 変換先トピック、デフォルト値（未定義ペイロード用）
+#### 1. Transfer Function
+- Forwards received payload as-is to another topic
+- Settings: Target topic
 
-#### 3. 循環機能
-- 特定のペイロード（進む・戻る）を受信すると、設定された値のリストを順に進める・戻す
-- リテイン付きでパブリッシュ（MQTTサーバに保存）
-- 初期値がない場合は最初の要素を使用
-- 設定項目: 進むペイロード（必須）、戻るペイロード（任意）
+#### 2. Convert Function
+- Publishes corresponding values to another topic based on received payload
+- Conversion values can be set for each payload value
+- Settings: Target topic, default value (for undefined payloads)
 
-### 表示設定
-- **ペイロード値設定**: 各ペイロード値に対して
-  - 表示文字列: 一覧での表示名
-  - 行色: テーブル行の背景色
-  - 変換値: 変換機能で使用する値
+#### 3. Cycle Function
+- Advances/reverses through a list of values when specific payloads (next/prev) are received
+- Publishes with retain flag (saved to MQTT server)
+- Uses first element if no initial value
+- Settings: Next payload (required), previous payload (optional)
 
-### MQTT接続
-- **接続設定**: ホスト、ポート、ユーザー名、パスワード
-- **自動購読**: 設定されたトピックを自動的に購読
-- **接続状態表示**: ヘッダーの状態インジケーター
+### Display & Color Settings
+- **Payload Value Configuration**: For each payload value
+  - Display Text: Custom display name in table
+  - Background Color: Table row background color (28-color palette)
+  - Text Color: Table row text color (28-color palette)
+  - Convert Value: Value used in convert function
 
-### データ管理
-- **自動保存**: LocalStorageに設定を保存
-- **エクスポート**: 全設定をJSON形式でテキストエリアに表示
-- **インポート**: JSON形式の設定データを読み込み
+### Theme Support
+- **Dark/Light Mode**: Toggle between themes with floating action button
+- **Auto-save**: Theme preference saved to localStorage
+- **Complete Coverage**: All UI elements properly themed
+- **Custom Colors**: Row colors work in both light and dark modes
 
-## 技術仕様
+### MQTT Connection
+- **Connection Settings**: Host, port, username, password
+- **Auto-connect**: Automatically connects on startup if settings exist
+- **Auto-subscribe**: Automatically subscribes to configured topics
+- **Status Indicator**: Fixed position indicator (top-right corner)
+- **Real-time Updates**: Live payload value updates and color changes
 
-### ファイル構成
-- `index.html`: 単一ファイルアプリケーション（HTML/CSS/JavaScript）
+### Data Management
+- **Auto-save**: All settings saved to localStorage automatically
+- **Export**: Full configuration export to JSON format
+- **Import**: JSON configuration import with backward compatibility
+- **Payload Editing**: Click-to-edit payload values with direct MQTT publish
 
-### 使用ライブラリ（CDN）
-- Bootstrap 5.3.0: UIフレームワーク
-- Bootstrap Icons: アイコン
-- MQTT.js: MQTTクライアント
+## Technical Specifications
 
-### 動作要件
-- モダンWebブラウザ（WebSocket対応）
-- MQTTブローカー（WebSocket対応）
+### File Structure
+- `index.html`: Single file application (HTML/CSS/JavaScript)
+- `CLAUDE.md`: Project documentation and instructions
 
-## 使用方法
+### Dependencies (CDN)
+- Bootstrap 5.3.0: UI framework with dark mode support
+- Bootstrap Icons: Icon library
+- MQTT.js: MQTT client library
 
-### 1. 初期設定
-1. `index.html`をブラウザで開く
-2. 「設定」ボタンから「MQTT接続」タブでブローカー情報を入力
-3. 「接続」ボタンでMQTTブローカーに接続
+### Browser Requirements
+- Modern web browser with WebSocket support
+- Drag & Drop API support
+- CSS custom properties support
+- localStorage support
 
-### 2. トピック設定
-1. 「新規登録」ボタンでトピック設定画面を開く
-2. 基本情報（ラベル、トピック名）を入力
-3. ペイロード値設定で取り得る値と表示情報を登録
-4. 機能設定で転送・変換・循環のいずれかを選択・設定
-5. 「保存」で設定完了
+### MQTT Broker Requirements
+- WebSocket support (typically port 8083)
+- Optional: Username/password authentication
 
-### 3. 動作確認
-- 一覧画面でリアルタイムにメッセージ受信を確認
-- 機能列のボタンでON/OFF切替
-- 右クリックメニューで編集・削除
+## Usage Guide
 
-### 4. データ管理
-- 「設定」→「データ管理」でエクスポート/インポート
-- JSON形式で設定の共有・バックアップが可能
+### 1. Initial Setup
+1. Open `index.html` in a modern web browser
+2. Click the settings button (bottom-right) → "MQTT Connection" tab
+3. Enter broker information (host, port, username, password)
+4. Click "Connect" to establish MQTT connection
 
-## 設定例
+### 2. Topic Configuration
+1. Click "Add Topic" floating action button (top-right)
+2. Enter basic information (label, topic name)
+3. Configure payload values with display text and colors
+4. Select and configure a function (Transfer/Convert/Cycle)
+5. Click "Save" to complete setup
 
-### 循環機能の例
+### 3. Operation
+- **Real-time Monitoring**: View live message updates in the table
+- **Function Toggle**: Click function buttons to enable/disable
+- **Quick Publish**: Right-click rows to publish predefined values
+- **Edit Payloads**: Click payload cells to edit and publish directly
+- **Reorder Topics**: Drag rows using the grip handle
+
+### 4. Data Management
+- **Export/Import**: Use Settings → "Data Management" tab
+- **Auto-backup**: All changes saved automatically
+- **Theme Toggle**: Click theme button (bottom-right area)
+
+## Configuration Examples
+
+### Cycle Function Example
 ```
-ラベル: ライト制御
-トピック: home/light/status
-ペイロード値:
-- value: "off", display: "消灯", color: "#ffcccc"
-- value: "dim", display: "調光", color: "#ffffcc"
-- value: "bright", display: "点灯", color: "#ccffcc"
-機能: 循環
-進むペイロード: "next"
-戻るペイロード: "prev"
+Label: Light Control
+Topic: home/light/status
+Payload Values:
+- value: "off", display: "Off", background: "#ffcccc", text: "#000000"
+- value: "dim", display: "Dimmed", background: "#ffffcc", text: "#000000"
+- value: "bright", display: "Bright", background: "#ccffcc", text: "#000000"
+Function: Cycle
+Next Payload: "next"
+Previous Payload: "prev"
 ```
 
-現在値が"dim"の時に"next"を受信すると"bright"をパブリッシュします。
+When current value is "dim" and "next" is received, "bright" will be published.
 
-## データ形式
+### Convert Function Example
+```
+Label: Temperature Sensor
+Topic: sensors/temperature
+Payload Values:
+- value: "20.5", display: "Room Temp", convert: "comfortable"
+- value: "25.0", display: "Warm", convert: "warm"
+Function: Convert
+Target Topic: home/status/comfort
+Default Value: "unknown"
+```
 
-設定データはLocalStorageに以下の形式で保存されます：
+## Data Format
+
+Configuration data is saved to localStorage in the following format:
 
 ```json
 {
   "topics": [
     {
-      "label": "トピック名",
+      "label": "Topic Name",
       "name": "mqtt/topic",
       "functionType": "cycle",
       "functionEnabled": true,
       "payloadValues": [
         {
           "value": "on",
-          "display": "オン",
-          "color": "#ccffcc",
+          "display": "On",
+          "backgroundColor": "#ccffcc",
+          "textColor": "#000000",
           "convertValue": "1"
         }
       ],
       "cycleNextPayload": "next",
-      "cyclePrevPayload": "prev"
+      "cyclePrevPayload": "prev",
+      "currentPayload": "on",
+      "currentValue": "on"
     }
   ],
   "settings": {
@@ -136,6 +178,55 @@ MQTT Patcherは、MQTTトピックを監視し、受信したメッセージに�
     "mqttPort": "8083",
     "mqttUsername": "user",
     "mqttPassword": "pass"
-  }
+  },
+  "theme": "dark"
 }
 ```
+
+## UI Components
+
+### Floating Action Buttons
+- **Top-right**: Add Topic (+)
+- **Bottom-right**: Settings (gear icon)
+- **Bottom-right-left**: Theme Toggle (sun/moon icon)
+- **Bottom-left**: GitHub Link
+- **Top-right corner**: Connection Status Indicator
+
+### Interactive Elements
+- **Drag Handle**: Left column with grip icon for row reordering
+- **Payload Cells**: Click to edit and publish values directly
+- **Function Buttons**: Toggle function enable/disable
+- **Context Menu**: Right-click for edit/delete/quick publish options
+- **Color Palette**: 28-color selection for background and text colors
+
+## Development
+
+- **Repository**: https://github.com/ytx/mqtt_p
+- **Single File**: Complete application in one HTML file
+- **No Build Process**: Direct browser execution
+- **Responsive Design**: Works on desktop and mobile devices
+- **Accessibility**: Keyboard navigation and screen reader support
+
+# Important Instructions
+
+This is a single-file MQTT application with the following development guidelines:
+
+- **Single File Architecture**: All functionality contained in `index.html`
+- **Modern UI**: Bootstrap 5 with custom dark/light theme support
+- **Real-time Updates**: Live MQTT message processing and display
+- **Drag & Drop**: Interactive row reordering with visual feedback
+- **Color Customization**: 28-color palette for row styling
+- **Responsive Design**: Mobile and desktop compatible
+- **Auto-save**: All settings and changes saved automatically
+- **Export/Import**: Full configuration backup and restore
+
+## Key Features Implemented
+- Floating action buttons with glassmorphism design
+- Inline payload editing with direct MQTT publish
+- Context menu with quick publish options
+- Dark/light theme with complete UI coverage
+- Drag & drop row reordering
+- Auto-connect MQTT on startup
+- 28-color palette for background and text colors
+- Real-time row color updates based on payload values
+- English UI throughout the application
