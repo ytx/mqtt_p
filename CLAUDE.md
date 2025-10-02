@@ -85,6 +85,7 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
 
 ### MQTT Connection
 - **Connection Settings**: Host, port, username, password
+- **Protocol Auto-detection**: Automatically uses wss:// for HTTPS pages, ws:// for HTTP pages
 - **Auto-connect**: Automatically connects on startup if settings exist
 - **Auto-subscribe**: Automatically subscribes to configured topics
 - **Status Indicator**: Fixed position indicator (top-right corner)
@@ -92,6 +93,9 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
 - **Function Control**: Individual on/off control for each topic's processing functions
   - ON (Green): Messages are processed and functions execute
   - OFF (Gray): Messages are monitored and displayed only, no processing
+- **HTTPS Compatibility**: When accessing via HTTPS, WebSocket connections automatically use WSS (secure WebSocket)
+  - Note: MQTT broker must support WSS connections for HTTPS deployments
+  - Alternative: Use reverse proxy (nginx/apache) to provide WSS endpoint
 
 ### Data Management
 - **Auto-save**: All settings saved to localStorage automatically
@@ -117,8 +121,34 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
 - localStorage support
 
 ### MQTT Broker Requirements
-- WebSocket support (typically port 8083)
+- WebSocket support (typically port 8083 for ws://)
+- For HTTPS deployments: WSS (secure WebSocket) support required
+  - Direct WSS: Configure broker with TLS/SSL certificates (port 8084 or 9001 typically)
+  - Reverse Proxy: Use nginx/apache to provide WSS endpoint over existing WebSocket
 - Optional: Username/password authentication
+
+#### WSS Setup Examples
+
+**Mosquitto Direct WSS:**
+```conf
+listener 8083
+protocol websockets
+
+listener 8084
+protocol websockets
+certfile /path/to/cert.pem
+keyfile /path/to/key.pem
+```
+
+**Nginx Reverse Proxy:**
+```nginx
+location /mqtt {
+    proxy_pass http://localhost:8083;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}
+```
 
 ## Usage Guide
 
@@ -269,12 +299,16 @@ This is a single-file MQTT application with the following development guidelines
 - Control bar with fullscreen, theme, and view controls
 - List and tile view modes with optimized layouts
 - Inline payload editing with direct MQTT publish
-- Context menu with quick publish options
+- Context menu with quick publish and duplicate options
+- Topic duplication feature for easy configuration reuse
 - Dark/light theme with complete UI coverage
 - Drag & drop row reordering
-- Auto-connect MQTT on startup
+- Auto-connect MQTT on startup with protocol auto-detection (ws:// or wss://)
+- HTTPS-compatible with automatic WSS protocol selection
 - 28-color palette for background and text colors
+- Smart default colors for new payload values (Teal for first, Red for subsequent)
 - Real-time row color updates based on payload values
 - Schedule function with day/time-based publishing
 - Timer function with countdown and audio alerts
+- Timer color priority system (payload values override timer colors)
 - English UI throughout the application
