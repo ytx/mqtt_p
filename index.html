@@ -1269,13 +1269,19 @@
                 return;
             }
 
+            // Determine protocol based on page protocol
+            // If page is HTTPS, use wss://, otherwise use ws://
+            const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+
             const options = {
-                port: parseInt(port),
                 username: username || undefined,
                 password: password || undefined
             };
 
-            mqttClient = mqtt.connect(`ws://${host}:${port}/mqtt`, options);
+            // Build connection URL with appropriate protocol
+            const url = `${protocol}${host}:${port}/mqtt`;
+
+            mqttClient = mqtt.connect(url, options);
 
             mqttClient.on('connect', function() {
                 console.log('MQTT connected successfully');
