@@ -17,9 +17,10 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
   - Function: ON/OFF status of configured functions (monitoring always continues)
 
 - **CRUD Operations**:
-  - Add Topic: Floating action button (top-right)
-  - Edit/Delete: Right-click on rows for context menu
+  - Add Topic: Control bar button
+  - Edit/Duplicate/Delete: Right-click on rows for context menu
   - Quick Publish: Right-click to publish predefined payload values
+  - Duplicate: Creates a copy of the topic with "(Copy)" suffix
 
 ### Drag & Drop Reordering
 - **Row Sorting**: Drag rows by the grip handle to reorder topics
@@ -56,11 +57,15 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
 - Stops when receiving a non-numeric payload
 - Displays time in HH:MM:SS or MM:SS format (hours shown only when > 0)
 - Supports overtime (negative values) with different color scheme
+- Color priority: Payload value settings take precedence over timer colors
 - Settings:
   - Publish interval (seconds)
-  - Countdown color (background/foreground)
-  - Overtime color (background/foreground)
+  - Countdown color (background/foreground) - used when no payload value match
+  - Overtime color (background/foreground) - used when no payload value match
   - Sound when reaching 0 (beep/bell/chime/custom audio file)
+- Default colors:
+  - Countdown: Blue background (#007bff), White text (#ffffff)
+  - Overtime: Red background (#ff0000), White text (#ffffff)
 
 ### Display & Color Settings
 - **Payload Value Configuration**: For each payload value
@@ -68,6 +73,9 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
   - Background Color: Table row background color (28-color palette)
   - Text Color: Table row text color (28-color palette)
   - Convert Value: Value used in convert function
+- **Default Colors for New Payloads**:
+  - First payload: Teal background (#20c997), White text (#ffffff)
+  - Subsequent payloads: Red background (#ff0000), White text (#ffffff)
 
 ### Theme Support
 - **Dark/Light Mode**: Toggle between themes with floating action button

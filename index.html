@@ -783,6 +783,7 @@
     <div class="context-menu d-none" id="contextMenu">
         <div id="payloadMenuItems"></div>
         <div class="context-menu-item" id="editTopic">Edit</div>
+        <div class="context-menu-item" id="duplicateTopic">Duplicate</div>
         <div class="context-menu-item" id="deleteTopic">Delete</div>
     </div>
 
@@ -1076,14 +1077,14 @@
                                                 <label class="form-label small">Background</label>
                                                 <div class="d-flex align-items-center">
                                                     <div style="width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" id="timerCountdownBgPreview"></div>
-                                                    <input type="hidden" id="timerCountdownBg" value="#ccffcc">
+                                                    <input type="hidden" id="timerCountdownBg" value="#007bff">
                                                 </div>
                                             </div>
                                             <div class="col-6">
                                                 <label class="form-label small">Text</label>
                                                 <div class="d-flex align-items-center">
                                                     <div style="width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" id="timerCountdownFgPreview"></div>
-                                                    <input type="hidden" id="timerCountdownFg" value="#000000">
+                                                    <input type="hidden" id="timerCountdownFg" value="#ffffff">
                                                 </div>
                                             </div>
                                         </div>
@@ -1095,14 +1096,14 @@
                                                 <label class="form-label small">Background</label>
                                                 <div class="d-flex align-items-center">
                                                     <div style="width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" id="timerOvertimeBgPreview"></div>
-                                                    <input type="hidden" id="timerOvertimeBg" value="#ffcccc">
+                                                    <input type="hidden" id="timerOvertimeBg" value="#ff0000">
                                                 </div>
                                             </div>
                                             <div class="col-6">
                                                 <label class="form-label small">Text</label>
                                                 <div class="d-flex align-items-center">
                                                     <div style="width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" id="timerOvertimeFgPreview"></div>
-                                                    <input type="hidden" id="timerOvertimeFg" value="#000000">
+                                                    <input type="hidden" id="timerOvertimeFg" value="#ffffff">
                                                 </div>
                                             </div>
                                         </div>
@@ -1196,7 +1197,9 @@
 
             // Topic modal
             document.getElementById('saveTopicBtn').addEventListener('click', saveTopic);
-            document.getElementById('addPayloadBtn').addEventListener('click', addPayloadEntry);
+            document.getElementById('addPayloadBtn').addEventListener('click', function() {
+                addPayloadEntry();
+            });
             document.getElementById('functionType').addEventListener('change', toggleFunctionSettings);
 
             // Export/Import
@@ -1206,6 +1209,7 @@
             // Context menu
             document.addEventListener('click', hideContextMenu);
             document.getElementById('editTopic').addEventListener('click', editSelectedTopic);
+            document.getElementById('duplicateTopic').addEventListener('click', duplicateSelectedTopic);
             document.getElementById('deleteTopic').addEventListener('click', deleteSelectedTopic);
 
             // Theme toggle
@@ -1573,16 +1577,16 @@
                             break;
                         case 'timer':
                             document.getElementById('timerInterval').value = topicData.timerInterval || 1;
-                            document.getElementById('timerCountdownBg').value = topicData.timerCountdownBg || '#ccffcc';
-                            document.getElementById('timerCountdownFg').value = topicData.timerCountdownFg || '#000000';
-                            document.getElementById('timerOvertimeBg').value = topicData.timerOvertimeBg || '#ffcccc';
-                            document.getElementById('timerOvertimeFg').value = topicData.timerOvertimeFg || '#000000';
+                            document.getElementById('timerCountdownBg').value = topicData.timerCountdownBg || '#007bff';
+                            document.getElementById('timerCountdownFg').value = topicData.timerCountdownFg || '#ffffff';
+                            document.getElementById('timerOvertimeBg').value = topicData.timerOvertimeBg || '#ff0000';
+                            document.getElementById('timerOvertimeFg').value = topicData.timerOvertimeFg || '#ffffff';
                             document.getElementById('timerSound').value = topicData.timerSound || '';
                             // Update color previews
-                            document.getElementById('timerCountdownBgPreview').style.backgroundColor = topicData.timerCountdownBg || '#ccffcc';
-                            document.getElementById('timerCountdownFgPreview').style.backgroundColor = topicData.timerCountdownFg || '#000000';
-                            document.getElementById('timerOvertimeBgPreview').style.backgroundColor = topicData.timerOvertimeBg || '#ffcccc';
-                            document.getElementById('timerOvertimeFgPreview').style.backgroundColor = topicData.timerOvertimeFg || '#000000';
+                            document.getElementById('timerCountdownBgPreview').style.backgroundColor = topicData.timerCountdownBg || '#007bff';
+                            document.getElementById('timerCountdownFgPreview').style.backgroundColor = topicData.timerCountdownFg || '#ffffff';
+                            document.getElementById('timerOvertimeBgPreview').style.backgroundColor = topicData.timerOvertimeBg || '#ff0000';
+                            document.getElementById('timerOvertimeFgPreview').style.backgroundColor = topicData.timerOvertimeFg || '#ffffff';
                             break;
                     }
                 }
@@ -1597,8 +1601,30 @@
 
         function addPayloadEntry(data = null) {
             const container = document.getElementById('payloadValues');
+
+            // Determine default colors based on payload count (before adding new entry)
+            const existingPayloads = container.querySelectorAll('.payload-entry').length;
+            let defaultBgColor = '#ffffff';
+            let defaultTextColor = '#000000';
+
+            if (!data) {
+                if (existingPayloads === 0) {
+                    // First payload
+                    defaultBgColor = '#20c997';
+                    defaultTextColor = '#ffffff';
+                } else {
+                    // Second and subsequent payloads
+                    defaultBgColor = '#ff0000';
+                    defaultTextColor = '#ffffff';
+                }
+            }
+
             const entry = document.createElement('div');
             entry.className = 'row mb-2 payload-entry';
+
+            const bgColor = (data && data.backgroundColor) ? data.backgroundColor : defaultBgColor;
+            const txtColor = (data && data.textColor) ? data.textColor : defaultTextColor;
+
             entry.innerHTML = `
                 <div class="col-md-3">
                     <input type="text" class="form-control payload-value" placeholder="Payload Value" value="${data?.value || ''}">
@@ -1610,19 +1636,19 @@
                     <div class="mb-2">
                         <label class="form-label small">Background</label>
                         <div class="d-flex align-items-center">
-                            <div class="color-preview" style="width: 25px; height: 25px; border: 1px solid #ddd; border-radius: 4px; background-color: ${data?.backgroundColor || '#ffffff'}; margin-right: 8px; cursor: pointer;" data-target="backgroundColor"></div>
+                            <div class="color-preview" style="width: 25px; height: 25px; border: 1px solid #ddd; border-radius: 4px; background-color: ${bgColor}; margin-right: 8px; cursor: pointer;" data-target="backgroundColor"></div>
                             <button type="button" class="btn btn-sm btn-outline-secondary color-palette-btn" data-target="backgroundColor" style="font-size: 0.75rem; padding: 2px 8px;">Select</button>
                         </div>
                     </div>
                     <div>
                         <label class="form-label small">Text Color</label>
                         <div class="d-flex align-items-center">
-                            <div class="color-preview" style="width: 25px; height: 25px; border: 1px solid #ddd; border-radius: 4px; background-color: ${data?.textColor || '#000000'}; margin-right: 8px; cursor: pointer;" data-target="textColor"></div>
+                            <div class="color-preview" style="width: 25px; height: 25px; border: 1px solid #ddd; border-radius: 4px; background-color: ${txtColor}; margin-right: 8px; cursor: pointer;" data-target="textColor"></div>
                             <button type="button" class="btn btn-sm btn-outline-secondary color-palette-btn" data-target="textColor" style="font-size: 0.75rem; padding: 2px 8px;">Select</button>
                         </div>
                     </div>
-                    <input type="hidden" class="payload-background-color" value="${data?.backgroundColor || '#ffffff'}">
-                    <input type="hidden" class="payload-text-color" value="${data?.textColor || '#000000'}">
+                    <input type="hidden" class="payload-background-color" value="${bgColor}">
+                    <input type="hidden" class="payload-text-color" value="${txtColor}">
                 </div>
                 <div class="col-md-2">
                     <input type="text" class="form-control convert-value" placeholder="Convert Value" value="${data?.convertValue || ''}">
@@ -1669,6 +1695,19 @@
 
             if (functionType) {
                 document.getElementById(`${functionType}Settings`).classList.remove('d-none');
+
+                // Update timer color previews when switching to timer mode
+                if (functionType === 'timer') {
+                    const countdownBg = document.getElementById('timerCountdownBg').value;
+                    const countdownFg = document.getElementById('timerCountdownFg').value;
+                    const overtimeBg = document.getElementById('timerOvertimeBg').value;
+                    const overtimeFg = document.getElementById('timerOvertimeFg').value;
+
+                    document.getElementById('timerCountdownBgPreview').style.backgroundColor = countdownBg;
+                    document.getElementById('timerCountdownFgPreview').style.backgroundColor = countdownFg;
+                    document.getElementById('timerOvertimeBgPreview').style.backgroundColor = overtimeBg;
+                    document.getElementById('timerOvertimeFgPreview').style.backgroundColor = overtimeFg;
+                }
             }
         }
 
@@ -1792,23 +1831,33 @@
 
                 // Special handling for timer function
                 if (topic.functionType === 'timer') {
-                    const seconds = parseInt(topic.currentPayload);
-                    if (!isNaN(seconds)) {
-                        // Format time display
-                        displayText = formatTimerDisplay(seconds);
+                    // Check if there's a matching payload value first (for both numeric and non-numeric)
+                    const currentPayloadValue = topic.payloadValues && topic.payloadValues.find(pv => pv.value === topic.currentPayload);
 
-                        // Use timer colors
-                        if (seconds >= 0) {
-                            backgroundColor = topic.timerCountdownBg || '#ccffcc';
-                            textColor = topic.timerCountdownFg || '#000000';
-                        } else {
-                            backgroundColor = topic.timerOvertimeBg || '#ffcccc';
-                            textColor = topic.timerOvertimeFg || '#000000';
-                        }
+                    if (currentPayloadValue) {
+                        // Use payload value settings if available
+                        displayText = currentPayloadValue.display;
+                        backgroundColor = currentPayloadValue.backgroundColor;
+                        textColor = currentPayloadValue.textColor;
                     } else {
-                        displayText = topic.currentPayload || '';
-                        backgroundColor = '#ffffff';
-                        textColor = '#000000';
+                        const seconds = parseInt(topic.currentPayload);
+                        if (!isNaN(seconds)) {
+                            // Format time display
+                            displayText = formatTimerDisplay(seconds);
+
+                            // Use timer colors
+                            if (seconds >= 0) {
+                                backgroundColor = topic.timerCountdownBg || '#007bff';
+                                textColor = topic.timerCountdownFg || '#ffffff';
+                            } else {
+                                backgroundColor = topic.timerOvertimeBg || '#ff0000';
+                                textColor = topic.timerOvertimeFg || '#ffffff';
+                            }
+                        } else {
+                            displayText = topic.currentPayload || '';
+                            backgroundColor = '#ffffff';
+                            textColor = '#000000';
+                        }
                     }
                 } else {
                     const currentPayloadValue = topic.payloadValues.find(pv => pv.value === topic.currentPayload);
@@ -2004,6 +2053,33 @@
                     topics.splice(selectedRow, 1);
                     saveTopics();
                     renderTopics();
+                }
+            }
+            hideContextMenu();
+        }
+
+        function duplicateSelectedTopic() {
+            if (selectedRow !== null) {
+                const originalTopic = topics[selectedRow];
+                // Create a deep copy of the topic
+                const duplicatedTopic = JSON.parse(JSON.stringify(originalTopic));
+
+                // Modify the label to indicate it's a copy
+                duplicatedTopic.label = originalTopic.label + ' (Copy)';
+
+                // Reset current values
+                duplicatedTopic.currentPayload = null;
+                duplicatedTopic.currentValue = null;
+
+                // Insert the duplicated topic right after the original
+                topics.splice(selectedRow + 1, 0, duplicatedTopic);
+
+                saveTopics();
+                renderTopics();
+
+                // Auto-subscribe if connected
+                if (mqttClient && mqttClient.connected && duplicatedTopic.name) {
+                    mqttClient.subscribe(duplicatedTopic.name);
                 }
             }
             hideContextMenu();
@@ -2576,20 +2652,33 @@
 
                 // Special handling for timer function
                 if (topic.functionType === 'timer') {
-                    const seconds = parseInt(topic.currentPayload);
-                    if (!isNaN(seconds)) {
-                        displayText = formatTimerDisplay(seconds);
-                        if (seconds >= 0) {
-                            backgroundColor = topic.timerCountdownBg || '#ccffcc';
-                            textColor = topic.timerCountdownFg || '#000000';
-                        } else {
-                            backgroundColor = topic.timerOvertimeBg || '#ffcccc';
-                            textColor = topic.timerOvertimeFg || '#000000';
-                        }
+                    // Check if there's a matching payload value first (for both numeric and non-numeric)
+                    const currentPayloadValue = topic.payloadValues && topic.payloadValues.find(pv => pv.value === topic.currentPayload);
+
+                    if (currentPayloadValue) {
+                        // Use payload value settings if available
+                        displayText = currentPayloadValue.display;
+                        backgroundColor = currentPayloadValue.backgroundColor;
+                        textColor = currentPayloadValue.textColor;
                     } else {
-                        displayText = topic.currentPayload || '';
-                        backgroundColor = '#ffffff';
-                        textColor = '#000000';
+                        const seconds = parseInt(topic.currentPayload);
+                        if (!isNaN(seconds)) {
+                            // Format time display
+                            displayText = formatTimerDisplay(seconds);
+
+                            // Use timer colors
+                            if (seconds >= 0) {
+                                backgroundColor = topic.timerCountdownBg || '#007bff';
+                                textColor = topic.timerCountdownFg || '#ffffff';
+                            } else {
+                                backgroundColor = topic.timerOvertimeBg || '#ff0000';
+                                textColor = topic.timerOvertimeFg || '#ffffff';
+                            }
+                        } else {
+                            displayText = topic.currentPayload || '';
+                            backgroundColor = '#ffffff';
+                            textColor = '#000000';
+                        }
                     }
                 } else {
                     const currentPayloadValue = topic.payloadValues.find(pv => pv.value === topic.currentPayload);

@@ -69,6 +69,8 @@ No installation, no dependencies, no build process required!
 
 > 💡 Payload values are not required for Timer and Schedule functions
 
+> 💡 **Default colors**: First payload uses Teal/White (#20c997/#ffffff), subsequent payloads use Red/White (#ff0000/#ffffff)
+
 ### 4. Setting Up Functions
 
 Choose one function type per topic:
@@ -109,10 +111,13 @@ Choose one function type per topic:
   - Stops when receiving non-numeric payload
   - Continues into negative (overtime) with different colors
 - **Display**: Shows time as HH:MM:SS (or MM:SS when hours = 0)
+- **Color Priority**: Payload value settings override timer colors
+  - Use payload values for specific states (e.g., "off", "0", "60")
+  - Timer colors apply when no payload value matches
 - **Settings**:
-  - Publish interval (seconds)
-  - Countdown colors (background/text)
-  - Overtime colors (background/text)
+  - Publish interval (seconds, default: 1)
+  - Countdown colors (background/text) - Blue/White by default
+  - Overtime colors (background/text) - Red/White by default
   - Sound alert (Beep/Bell/Chime/Custom audio file)
 
 ### 5. Save and Monitor
@@ -131,9 +136,10 @@ Choose one function type per topic:
 #### List View
 - Traditional table layout with full topic details
 - **🖱️ Click Payload Cell**: Edit and publish values instantly
-- **🖱️ Right-click Row**: Access context menu for edit/delete/quick publish
+- **🖱️ Right-click Row**: Access context menu for edit/duplicate/delete/quick publish
 - **🖱️ Drag Grip Handle**: Reorder topics by dragging the ≡ icon
 - **🖱️ Click Function Button**: Toggle function execution on/off (monitoring continues)
+- **🖱️ Duplicate Topic**: Right-click and select "Duplicate" to create a copy
 
 #### Tile View
 - Grid-based layout optimized for 4:3 aspect ratio
