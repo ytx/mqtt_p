@@ -1,10 +1,10 @@
-# MQTT Patcher
+# MQTT Panel
 
 A single HTML file MQTT message processing application with modern UI and dark mode support.
 
 ## Overview
 
-MQTT Patcher is a web application that monitors MQTT topics and processes received messages through transfer, conversion, or cycling operations. It displays configured topics in a table format and allows real-time monitoring of message states.
+MQTT Panel is a web application that monitors MQTT topics and processes received messages through transfer, conversion, or cycling operations. It displays configured topics in a table format and allows real-time monitoring of message states.
 
 ## Key Features
 
@@ -42,6 +42,25 @@ MQTT Patcher is a web application that monitors MQTT topics and processes receiv
 - Publishes with retain flag (saved to MQTT server)
 - Uses first element if no initial value
 - Settings: Next payload (required), previous payload (optional)
+
+#### 4. Schedule Function
+- Publishes messages at scheduled times based on day of week and time
+- Supports up to 2 independent schedules per topic
+- Each schedule can be individually enabled/disabled
+- Publishes with retain flag
+- Settings: Days of week, time, payload, enabled/disabled per schedule
+
+#### 5. Timer Function
+- Countdown timer that publishes decreasing values at specified intervals
+- Starts countdown when receiving an integer payload
+- Stops when receiving a non-numeric payload
+- Displays time in HH:MM:SS or MM:SS format (hours shown only when > 0)
+- Supports overtime (negative values) with different color scheme
+- Settings:
+  - Publish interval (seconds)
+  - Countdown color (background/foreground)
+  - Overtime color (background/foreground)
+  - Sound when reaching 0 (beep/bell/chime/custom audio file)
 
 ### Display & Color Settings
 - **Payload Value Configuration**: For each payload value
@@ -102,10 +121,10 @@ MQTT Patcher is a web application that monitors MQTT topics and processes receiv
 4. Click "Connect" to establish MQTT connection
 
 ### 2. Topic Configuration
-1. Click "Add Topic" floating action button (top-right)
+1. Click "Add Topic" button in the control bar
 2. Enter basic information (label, topic name)
-3. Configure payload values with display text and colors
-4. Select and configure a function (Transfer/Convert/Cycle)
+3. Configure payload values with display text and colors (not required for Timer/Schedule functions)
+4. Select and configure a function (Transfer/Convert/Cycle/Schedule/Timer)
 5. Click "Save" to complete setup
 
 ### 3. Operation
@@ -194,18 +213,27 @@ Configuration data is saved to localStorage in the following format:
 
 ## UI Components
 
-### Floating Action Buttons
-- **Top-right**: Add Topic (+)
-- **Bottom-right**: Settings (gear icon)
-- **Bottom-right-left**: Theme Toggle (sun/moon icon)
-- **Bottom-left**: GitHub Link
-- **Top-right corner**: Connection Status Indicator
+### View Modes
+- **List View**: Traditional table display with all topic details
+- **Tile View**: Grid-based display optimized for 4:3 aspect ratio
+  - Shows only Label and Display text
+  - Click tiles to publish next value
+  - Per-topic visibility control
 
-### Interactive Elements
-- **Drag Handle**: Left column with grip icon for row reordering
-- **Payload Cells**: Click to edit and publish values directly
+### Control Bar (Right Side)
+- **Fullscreen Toggle**: Enter/exit fullscreen mode
+- **Theme Toggle**: Switch between dark/light themes
+- **View Toggle**: Switch between list and tile views
+- **Settings**: Open settings modal
+- **Add Topic**: Create new topic
+- **GitHub Link**: Bottom of control bar
+
+### Additional UI Elements
+- **Connection Status Indicator**: Top-right corner (green=connected, red=disconnected)
+- **Drag Handle**: Left column with grip icon for row reordering (list view)
+- **Payload Cells**: Click to edit and publish values directly (list view)
 - **Function Buttons**: Toggle function enable/disable
-- **Context Menu**: Right-click for edit/delete/quick publish options
+- **Context Menu**: Right-click for edit/delete/quick publish options (list view)
 - **Color Palette**: 28-color selection for background and text colors
 
 ## Development
@@ -230,7 +258,8 @@ This is a single-file MQTT application with the following development guidelines
 - **Export/Import**: Full configuration backup and restore
 
 ## Key Features Implemented
-- Floating action buttons with glassmorphism design
+- Control bar with fullscreen, theme, and view controls
+- List and tile view modes with optimized layouts
 - Inline payload editing with direct MQTT publish
 - Context menu with quick publish options
 - Dark/light theme with complete UI coverage
@@ -238,4 +267,6 @@ This is a single-file MQTT application with the following development guidelines
 - Auto-connect MQTT on startup
 - 28-color palette for background and text colors
 - Real-time row color updates based on payload values
+- Schedule function with day/time-based publishing
+- Timer function with countdown and audio alerts
 - English UI throughout the application

@@ -1,8 +1,8 @@
-# MQTT Patcher
+# MQTT Panel
 
 A modern, single-file MQTT message processing application with dark mode, drag & drop reordering, and real-time color-coded monitoring.
 
-![MQTT Patcher Interface](https://img.shields.io/badge/Interface-Modern%20UI-blue)
+![MQTT Panel Interface](https://img.shields.io/badge/Interface-Modern%20UI-blue)
 ![Single File](https://img.shields.io/badge/Architecture-Single%20HTML-green)
 ![No Build Required](https://img.shields.io/badge/Setup-No%20Build-orange)
 
@@ -14,11 +14,15 @@ A modern, single-file MQTT message processing application with dark mode, drag &
 - 🔄 **Drag & Drop Reordering** - Intuitive topic organization
 - ⚡ **Real-time Updates** - Live MQTT message monitoring with instant visual feedback
 - 📱 **Responsive Design** - Works seamlessly on desktop and mobile
-- 🔧 **MQTT Functions** - Transfer, Convert, and Cycle operations with individual on/off control
+- 🔧 **MQTT Functions** - Transfer, Convert, Cycle, Schedule, and Timer operations with individual on/off control
 - 🎛️ **Inline Editing** - Click to edit payloads and publish instantly
 - 🚀 **Auto-connect** - Automatic MQTT connection on startup
 - 💾 **Auto-save** - All settings saved automatically to localStorage
 - 👁️ **Monitor Mode** - Disable functions to monitor only without processing messages
+- 📺 **Tile View** - Grid-based display optimized for 4:3 aspect ratio with click-to-publish
+- 🖥️ **Fullscreen Mode** - Immersive fullscreen experience with dedicated control bar
+- ⏰ **Scheduler** - Time and day-based automatic message publishing
+- ⏱️ **Timer** - Countdown timer with audio alerts and overtime tracking
 
 ## 🚀 Quick Start
 
@@ -47,10 +51,11 @@ No installation, no dependencies, no build process required!
 
 ### 2. Adding Topics
 
-1. Click the **Add Topic button** (➕) in the top-right corner
+1. Click the **Add Topic button** (➕) in the control bar
 2. Fill in the basic information:
    - **Label**: A friendly name for your topic
    - **Topic Name**: The MQTT topic path (e.g., `home/sensors/temperature`)
+   - **Show in Tile View**: Toggle whether to display in tile mode
 
 ### 3. Configuring Payload Values
 
@@ -61,6 +66,8 @@ No installation, no dependencies, no build process required!
    - **Background Color**: Click the color preview to select from 28 colors
    - **Text Color**: Choose contrasting text color for readability
    - **Convert Value**: Value to send when using Convert function (optional)
+
+> 💡 Payload values are not required for Timer and Schedule functions
 
 ### 4. Setting Up Functions
 
@@ -82,6 +89,32 @@ Choose one function type per topic:
   - **Next Payload**: Trigger to advance (e.g., `"next"`)
   - **Previous Payload**: Trigger to go back (e.g., `"prev"`)
 
+#### 📅 **Schedule Function**
+- Publishes messages at scheduled times
+- **Use case**: Automated lighting, periodic sensor checks
+- **Settings**:
+  - Up to 2 independent schedules per topic
+  - Days of week selection (with All/None buttons)
+  - Time of day (24-hour format)
+  - Payload to publish
+  - Individual enable/disable per schedule
+- Publishes with retain flag
+
+#### ⏱️ **Timer Function**
+- Countdown timer with automatic publishing
+- **Use case**: Kitchen timers, irrigation control, timeout monitoring
+- **Behavior**:
+  - Starts countdown when receiving an integer (seconds)
+  - Publishes decreasing values at specified intervals
+  - Stops when receiving non-numeric payload
+  - Continues into negative (overtime) with different colors
+- **Display**: Shows time as HH:MM:SS (or MM:SS when hours = 0)
+- **Settings**:
+  - Publish interval (seconds)
+  - Countdown colors (background/text)
+  - Overtime colors (background/text)
+  - Sound alert (Beep/Bell/Chime/Custom audio file)
+
 ### 5. Save and Monitor
 
 1. Click **"Save"** to create the topic
@@ -93,25 +126,36 @@ Choose one function type per topic:
 
 ## 🎛️ Using the Interface
 
-### Main Table Operations
+### View Modes
 
+#### List View
+- Traditional table layout with full topic details
 - **🖱️ Click Payload Cell**: Edit and publish values instantly
 - **🖱️ Right-click Row**: Access context menu for edit/delete/quick publish
 - **🖱️ Drag Grip Handle**: Reorder topics by dragging the ≡ icon
 - **🖱️ Click Function Button**: Toggle function execution on/off (monitoring continues)
 
-### Floating Action Buttons
+#### Tile View
+- Grid-based layout optimized for 4:3 aspect ratio
+- Shows only Label and Display text
+- **🖱️ Click Tile**: Publish next payload value (cycles through values)
+- Automatically calculates optimal grid size
+- Per-topic visibility control
 
-- **➕ Top-right**: Add new topic
-- **🌓 Bottom-right-left**: Toggle dark/light theme
-- **⚙️ Bottom-right**: Open settings
-- **📁 Bottom-left**: GitHub repository link
+### Control Bar (Right Side)
+
+- **🖥️ Fullscreen**: Enter/exit fullscreen mode
+- **🌓 Theme**: Toggle dark/light theme
+- **📊 View**: Switch between list and tile views
+- **⚙️ Settings**: Open settings modal
+- **➕ Add Topic**: Create new topic
+- **📁 GitHub**: Repository link (bottom)
 
 ### Status Indicators
 
 - **🟢 Top-right corner**: Connected to MQTT broker
 - **🔴 Top-right corner**: Disconnected from broker
-- **Function Buttons**:
+- **Function Buttons** (List view):
   - **Green (ON)**: Function active - processes and forwards messages
   - **Gray (OFF)**: Function inactive - monitors only, no processing
 

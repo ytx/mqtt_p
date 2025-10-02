@@ -1,0 +1,254 @@
+{
+  "topics": [
+    {
+      "label": "Light1",
+      "name": "/rod/v1/buttons/light1",
+      "functionType": "",
+      "functionEnabled": true,
+      "payloadValues": [
+        {
+          "value": "on",
+          "display": "ON",
+          "backgroundColor": "#007bff",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        },
+        {
+          "value": "off",
+          "display": "OFF",
+          "backgroundColor": "#adb5bd",
+          "textColor": "#000000",
+          "convertValue": ""
+        }
+      ],
+      "currentValue": null,
+      "currentPayload": "off"
+    },
+    {
+      "label": "TEST1",
+      "name": "/rod/v1/test/test1",
+      "functionType": "transfer",
+      "functionEnabled": true,
+      "payloadValues": [],
+      "currentValue": null,
+      "currentPayload": "off",
+      "transferTopic": "/rod/v1/test/test2"
+    },
+    {
+      "label": "TEST2",
+      "name": "/rod/v1/test/test2",
+      "functionType": "convert",
+      "functionEnabled": true,
+      "payloadValues": [
+        {
+          "value": "on",
+          "display": "on",
+          "backgroundColor": "#ffffff",
+          "textColor": "#000000",
+          "convertValue": "100"
+        },
+        {
+          "value": "off",
+          "display": "off",
+          "backgroundColor": "#ffffff",
+          "textColor": "#000000",
+          "convertValue": "200"
+        }
+      ],
+      "currentValue": null,
+      "currentPayload": "off",
+      "convertTopic": "/rod/v1/test/test3",
+      "convertDefault": "900"
+    },
+    {
+      "label": "TEST3",
+      "name": "/rod/v1/test/test3",
+      "functionType": "",
+      "functionEnabled": true,
+      "payloadValues": [],
+      "currentValue": null,
+      "currentPayload": "100"
+    },
+    {
+      "label": "check Trello",
+      "name": "dailytasks/check_trello",
+      "functionType": "",
+      "functionEnabled": true,
+      "payloadValues": [
+        {
+          "value": "todo",
+          "display": "todo",
+          "backgroundColor": "#ff0000",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        },
+        {
+          "value": "done",
+          "display": "done",
+          "backgroundColor": "#20c997",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        }
+      ],
+      "currentValue": null,
+      "currentPayload": "done"
+    },
+    {
+      "label": "check Schedule",
+      "name": "dailytasks/check_schedue",
+      "functionType": "",
+      "functionEnabled": true,
+      "payloadValues": [
+        {
+          "value": "todo",
+          "display": "todo",
+          "backgroundColor": "#ff0000",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        },
+        {
+          "value": "done",
+          "display": "done",
+          "backgroundColor": "#20c997",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        }
+      ],
+      "currentValue": null,
+      "currentPayload": "done"
+    },
+    {
+      "label": "unmute iPhone",
+      "name": "dailytasks/unmute_iphone",
+      "functionType": "",
+      "functionEnabled": true,
+      "payloadValues": [
+        {
+          "value": "todo",
+          "display": "todo",
+          "backgroundColor": "#ff0000",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        },
+        {
+          "value": "done",
+          "display": "done",
+          "backgroundColor": "#20c997",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        }
+      ],
+      "currentValue": null,
+      "currentPayload": "done"
+    },
+    {
+      "label": "submit daily report",
+      "name": "dailytasks/submit_daily_report",
+      "functionType": "",
+      "functionEnabled": true,
+      "payloadValues": [
+        {
+          "value": "todo",
+          "display": "todo",
+          "backgroundColor": "#dc3545",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        },
+        {
+          "value": "done",
+          "display": "done",
+          "backgroundColor": "#20c997",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        }
+      ],
+      "currentValue": null,
+      "currentPayload": "todo"
+    },
+    {
+      "label": "mqtt_test",
+      "name": "mqtt_test",
+      "functionType": "schedule",
+      "functionEnabled": true,
+      "showInTileView": true,
+      "payloadValues": [
+        {
+          "value": "on",
+          "display": "on",
+          "backgroundColor": "#007bff",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        },
+        {
+          "value": "off",
+          "display": "off",
+          "backgroundColor": "#6c757d",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        }
+      ],
+      "currentValue": null,
+      "currentPayload": "off",
+      "schedules": [
+        {
+          "days": [
+            4
+          ],
+          "time": "14:21",
+          "payload": "on",
+          "enabled": true
+        },
+        {
+          "days": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "time": "14:23",
+          "payload": "off",
+          "enabled": false
+        }
+      ]
+    },
+    {
+      "label": "timer",
+      "name": "mqtt_test/timer",
+      "functionType": "timer",
+      "functionEnabled": true,
+      "showInTileView": true,
+      "payloadValues": [
+        {
+          "value": "off",
+          "display": "off",
+          "backgroundColor": "#20c997",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        },
+        {
+          "value": "20",
+          "display": "20",
+          "backgroundColor": "#007bff",
+          "textColor": "#ffffff",
+          "convertValue": ""
+        }
+      ],
+      "currentValue": null,
+      "currentPayload": "off",
+      "timerInterval": 1,
+      "timerCountdownBg": "#007bff",
+      "timerCountdownFg": "#ffffff",
+      "timerOvertimeBg": "#ff0000",
+      "timerOvertimeFg": "#ffffff",
+      "timerSound": "custom",
+      "timerRemaining": null
+    }
+  ],
+  "settings": {
+    "mqttHost": "hub.xpenguin.biz",
+    "mqttPort": "9090",
+    "mqttUsername": "",
+    "mqttPassword": ""
+  }
+}
