@@ -23,6 +23,8 @@ A modern, single-file MQTT message processing application with dark mode, drag &
 - 🖥️ **Fullscreen Mode** - Immersive fullscreen experience with dedicated control bar
 - ⏰ **Scheduler** - Time and day-based automatic message publishing
 - ⏱️ **Timer** - Countdown timer with audio alerts and overtime tracking
+- 📡 **Client Status** - Online/offline status reporting with will message support
+- 🔖 **Retain Flags** - Configurable message persistence on MQTT broker
 
 ## 🚀 Quick Start
 
@@ -45,9 +47,14 @@ No installation, no dependencies, no build process required!
    - **Port**: WebSocket port (typically `8083`)
    - **Username**: Your MQTT username (if required)
    - **Password**: Your MQTT password (if required)
-5. Click **"Connect"**
+5. (Optional) Configure **"Client Status"** tab for online/offline reporting:
+   - **Status Topic**: Topic to publish status (e.g., `client/status`)
+   - **Online Payload**: Message when connected (e.g., `online`)
+   - **Away Payload**: Message when disconnected (e.g., `offline`)
+6. Click **"Connect"**
 
 > 💡 The app will automatically reconnect on future visits if settings are saved.
+> 💡 Client status messages are published with retain flag for persistent status.
 
 ### 2. Adding Topics
 
@@ -223,6 +230,25 @@ Payload Values:
 **Behavior**: Forwards motion events between MQTT systems
 
 **Function Control**: Turn off forwarding while still monitoring motion detection status.
+
+## 🔖 Retain Flags
+
+Different operations use retain flags differently to control message persistence on the MQTT broker:
+
+### ✅ Messages Retained on Broker
+- **Cycle Function**: Published values are retained
+- **Schedule Function**: Published values are retained
+- **Tile View Click**: Published values are retained
+- **Quick Publish** (Context Menu): Published values are retained
+- **Inline Payload Edit**: Published values are retained
+- **Client Status**: Both online and away messages are retained
+
+### 🔄 Following Source Message
+- **Transfer Function**: Uses retain flag from received message
+- **Convert Function**: Uses retain flag from received message
+
+### ❌ Messages Not Retained
+- **Timer Function**: Countdown values are not retained (transient state)
 
 ## 📊 Data Management
 

@@ -801,6 +801,9 @@
                             <a class="nav-link active" data-bs-toggle="tab" href="#mqttTab">MQTT Connection</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#clientStatusTab">Client Status</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" data-bs-toggle="tab" href="#dataTab">Data Management</a>
                         </li>
                     </ul>
@@ -825,6 +828,22 @@
                                 </div>
                                 <button type="button" class="btn btn-primary" id="connectBtn">Connect</button>
                                 <button type="button" class="btn btn-secondary" id="disconnectBtn">Disconnect</button>
+                            </form>
+                        </div>
+                        <div class="tab-pane fade" id="clientStatusTab">
+                            <form id="clientStatusForm">
+                                <div class="mb-3">
+                                    <label for="statusTopic" class="form-label">Status Topic</label>
+                                    <input type="text" class="form-control" id="statusTopic" placeholder="client/status">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="onlinePayload" class="form-label">Online Payload</label>
+                                    <input type="text" class="form-control" id="onlinePayload" placeholder="online">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="awayPayload" class="form-label">Away Payload</label>
+                                    <input type="text" class="form-control" id="awayPayload" placeholder="offline">
+                                </div>
                             </form>
                         </div>
                         <div class="tab-pane fade" id="dataTab">
@@ -1263,6 +1282,9 @@
             const port = document.getElementById('mqttPort').value;
             const username = document.getElementById('mqttUsername').value;
             const password = document.getElementById('mqttPassword').value;
+            const statusTopic = document.getElementById('statusTopic').value;
+            const onlinePayload = document.getElementById('onlinePayload').value;
+            const awayPayload = document.getElementById('awayPayload').value;
 
             if (!host) {
                 alert('Please enter a host');
@@ -1278,6 +1300,16 @@
                 password: password || undefined
             };
 
+            // Add will message if status topic is configured
+            if (statusTopic && awayPayload) {
+                options.will = {
+                    topic: statusTopic,
+                    payload: awayPayload,
+                    qos: 0,
+                    retain: true
+                };
+            }
+
             // Build connection URL with appropriate protocol
             const url = `${protocol}${host}:${port}/mqtt`;
 
@@ -1286,12 +1318,19 @@
             mqttClient.on('connect', function() {
                 console.log('MQTT connected successfully');
                 document.getElementById('connectionStatus').className = 'status-indicator status-connected';
+
+                // Publish online status if configured
+                if (statusTopic && onlinePayload) {
+                    mqttClient.publish(statusTopic, onlinePayload, { retain: true });
+                    console.log(`Published online status: ${statusTopic} = ${onlinePayload}`);
+                }
+
                 subscribeToTopics();
                 startScheduleChecker();
             });
 
-            mqttClient.on('message', function(topic, message) {
-                handleMessage(topic, message.toString());
+            mqttClient.on('message', function(topic, message, packet) {
+                handleMessage(topic, message.toString(), packet.retain);
             });
 
             mqttClient.on('error', function(error) {
@@ -1328,9 +1367,12 @@
         }
 
         // Message handling
-        function handleMessage(topic, payload) {
+        function handleMessage(topic, payload, retain) {
             const topicConfig = topics.find(t => t.name === topic);
             if (!topicConfig) return;
+
+            // Store retain flag for later use
+            topicConfig.lastRetain = retain;
 
             // Always update display regardless of function enabled status
             updateTopicDisplay(topic, payload);
@@ -1356,7 +1398,8 @@
 
         function handleTransfer(topicConfig, payload) {
             if (topicConfig.transferTopic && mqttClient) {
-                mqttClient.publish(topicConfig.transferTopic, payload);
+                const options = { retain: topicConfig.lastRetain || false };
+                mqttClient.publish(topicConfig.transferTopic, payload, options);
             }
         }
 
@@ -1367,7 +1410,8 @@
             const convertValue = payloadValue ? payloadValue.convertValue : topicConfig.convertDefault;
 
             if (convertValue !== undefined && convertValue !== null) {
-                mqttClient.publish(topicConfig.convertTopic, convertValue);
+                const options = { retain: topicConfig.lastRetain || false };
+                mqttClient.publish(topicConfig.convertTopic, convertValue, options);
             }
         }
 
@@ -2095,10 +2139,10 @@
             const topic = topics[topicIndex];
             if (!topic || !mqttClient || !mqttClient.connected) return;
 
-            // Update current payload and publish
+            // Update current payload and publish with retain
             topic.currentPayload = value;
             saveTopics();
-            mqttClient.publish(topic.name, value);
+            mqttClient.publish(topic.name, value, { retain: true });
             console.log(`Published: ${topic.name} = ${value}`);
 
             // Update display
@@ -2111,7 +2155,10 @@
                 mqttHost: document.getElementById('mqttHost').value,
                 mqttPort: document.getElementById('mqttPort').value,
                 mqttUsername: document.getElementById('mqttUsername').value,
-                mqttPassword: document.getElementById('mqttPassword').value
+                mqttPassword: document.getElementById('mqttPassword').value,
+                statusTopic: document.getElementById('statusTopic').value,
+                onlinePayload: document.getElementById('onlinePayload').value,
+                awayPayload: document.getElementById('awayPayload').value
             };
 
             localStorage.setItem('mqttPanelSettings', JSON.stringify(settings));
@@ -2125,6 +2172,9 @@
                 document.getElementById('mqttPort').value = parsed.mqttPort || '8083';
                 document.getElementById('mqttUsername').value = parsed.mqttUsername || '';
                 document.getElementById('mqttPassword').value = parsed.mqttPassword || '';
+                document.getElementById('statusTopic').value = parsed.statusTopic || '';
+                document.getElementById('onlinePayload').value = parsed.onlinePayload || '';
+                document.getElementById('awayPayload').value = parsed.awayPayload || '';
             }
         }
 
@@ -2398,9 +2448,9 @@
             topic.currentPayload = newValue;
             saveTopics();
 
-            // Publish to MQTT if connected
+            // Publish to MQTT if connected with retain
             if (mqttClient && mqttClient.connected && newValue !== '') {
-                mqttClient.publish(topic.name, newValue);
+                mqttClient.publish(topic.name, newValue, { retain: true });
                 console.log(`Published: ${topic.name} = ${newValue}`);
             }
 

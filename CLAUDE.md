@@ -86,6 +86,11 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
 ### MQTT Connection
 - **Connection Settings**: Host, port, username, password
 - **Protocol Auto-detection**: Automatically uses wss:// for HTTPS pages, ws:// for HTTP pages
+- **Client Status**: Configurable online/offline status reporting
+  - Status Topic: Topic to publish client status
+  - Online Payload: Message published when connected
+  - Away Payload: Message published via will when disconnected
+  - Both messages use retain flag for persistent status
 - **Auto-connect**: Automatically connects on startup if settings exist
 - **Auto-subscribe**: Automatically subscribes to configured topics
 - **Status Indicator**: Fixed position indicator (top-right corner)
@@ -102,6 +107,24 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
 - **Export**: Full configuration export to JSON format
 - **Import**: JSON configuration import with backward compatibility
 - **Payload Editing**: Click-to-edit payload values with direct MQTT publish
+
+### Retain Flags
+MQTT messages published by different functions have varying retain flag behaviors:
+
+**With Retain Flag (saved to broker)**:
+- Cycle Function: Published values retained
+- Schedule Function: Published values retained
+- Tile View Click: Published values retained
+- Quick Publish (Context Menu): Published values retained
+- Inline Payload Edit: Published values retained
+- Client Status: Both online and away messages retained
+
+**Following Source Message Retain Flag**:
+- Transfer Function: Uses retain flag from received message
+- Convert Function: Uses retain flag from received message
+
+**Without Retain Flag**:
+- Timer Function: Published countdown values not retained
 
 ## Technical Specifications
 
@@ -156,7 +179,11 @@ location /mqtt {
 1. Open `index.html` in a modern web browser
 2. Click the settings button (bottom-right) → "MQTT Connection" tab
 3. Enter broker information (host, port, username, password)
-4. Click "Connect" to establish MQTT connection
+4. (Optional) Configure "Client Status" tab for online/offline status reporting
+   - Status Topic: e.g., "client/status"
+   - Online Payload: e.g., "online"
+   - Away Payload: e.g., "offline"
+5. Click "Connect" to establish MQTT connection
 
 ### 2. Topic Configuration
 1. Click "Add Topic" button in the control bar
@@ -243,7 +270,10 @@ Configuration data is saved to localStorage in the following format:
     "mqttHost": "broker.example.com",
     "mqttPort": "8083",
     "mqttUsername": "user",
-    "mqttPassword": "pass"
+    "mqttPassword": "pass",
+    "statusTopic": "client/status",
+    "onlinePayload": "online",
+    "awayPayload": "offline"
   },
   "theme": "dark"
 }
@@ -305,6 +335,8 @@ This is a single-file MQTT application with the following development guidelines
 - Drag & drop row reordering
 - Auto-connect MQTT on startup with protocol auto-detection (ws:// or wss://)
 - HTTPS-compatible with automatic WSS protocol selection
+- Client status reporting with will message support
+- Configurable retain flags for different publish operations
 - 28-color palette for background and text colors
 - Smart default colors for new payload values (Teal for first, Red for subsequent)
 - Real-time row color updates based on payload values
