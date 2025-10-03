@@ -842,15 +842,15 @@
                             <form id="clientStatusForm">
                                 <div class="mb-3">
                                     <label for="statusTopic" class="form-label">Status Topic</label>
-                                    <input type="text" class="form-control" id="statusTopic" placeholder="client/status">
+                                    <input type="text" class="form-control" id="statusTopic" value="clients/client_name">
                                 </div>
                                 <div class="mb-3">
                                     <label for="onlinePayload" class="form-label">Online Payload</label>
-                                    <input type="text" class="form-control" id="onlinePayload" placeholder="online">
+                                    <input type="text" class="form-control" id="onlinePayload" value="online">
                                 </div>
                                 <div class="mb-3">
                                     <label for="awayPayload" class="form-label">Away Payload</label>
-                                    <input type="text" class="form-control" id="awayPayload" placeholder="offline">
+                                    <input type="text" class="form-control" id="awayPayload" value="away">
                                 </div>
                             </form>
                         </div>
@@ -2137,7 +2137,8 @@
                 duplicatedTopic.currentValue = null;
 
                 // Insert the duplicated topic right after the original
-                topics.splice(selectedRow + 1, 0, duplicatedTopic);
+                const newIndex = selectedRow + 1;
+                topics.splice(newIndex, 0, duplicatedTopic);
 
                 saveTopics();
                 renderTopics();
@@ -2146,8 +2147,14 @@
                 if (mqttClient && mqttClient.connected && duplicatedTopic.name) {
                     mqttClient.subscribe(duplicatedTopic.name);
                 }
+
+                // Open the edit modal for the duplicated topic
+                hideContextMenu();
+                currentTopicIndex = newIndex;
+                showTopicModal();
+            } else {
+                hideContextMenu();
             }
-            hideContextMenu();
         }
 
         function publishPayloadValue(topicIndex, value) {
