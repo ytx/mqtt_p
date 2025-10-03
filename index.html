@@ -412,6 +412,14 @@
             border-left: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        #tileControlBar.disconnected {
+            background: rgba(255, 100, 100, 0.95);
+        }
+
+        [data-theme="dark"] #tileControlBar.disconnected {
+            background: rgba(150, 30, 30, 0.95);
+        }
+
         .tile-control-btn {
             width: 40px;
             height: 40px;
@@ -1190,6 +1198,9 @@
             updateView();
             initializeEventListeners();
 
+            // Set initial disconnected state
+            document.getElementById('tileControlBar').classList.add('disconnected');
+
             // Auto-connect if settings are available
             setTimeout(autoConnectMQTT, 1000); // Delay to ensure UI is ready
         });
@@ -1318,6 +1329,7 @@
             mqttClient.on('connect', function() {
                 console.log('MQTT connected successfully');
                 document.getElementById('connectionStatus').className = 'status-indicator status-connected';
+                document.getElementById('tileControlBar').classList.remove('disconnected');
 
                 // Publish online status if configured
                 if (statusTopic && onlinePayload) {
@@ -1336,6 +1348,7 @@
             mqttClient.on('error', function(error) {
                 console.error('MQTT Error:', error);
                 document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+                document.getElementById('tileControlBar').classList.add('disconnected');
                 // Reset client reference on error
                 mqttClient = null;
             });
@@ -1343,6 +1356,7 @@
             mqttClient.on('close', function() {
                 console.log('MQTT connection closed');
                 document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+                document.getElementById('tileControlBar').classList.add('disconnected');
                 // Reset client reference on close
                 mqttClient = null;
             });
@@ -1354,6 +1368,7 @@
                 mqttClient = null;
             }
             document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
+            document.getElementById('tileControlBar').classList.add('disconnected');
         }
 
         function subscribeToTopics() {
