@@ -321,6 +321,8 @@ Configuration data is saved to localStorage in the following format:
 - **Function Buttons**: Toggle function enable/disable
 - **Context Menu**: Right-click for edit/delete/quick publish options (list view)
 - **Color Palette**: 28-color selection for background and text colors
+- **Wide Modals**: Topic and settings modals use 90% screen width for better usability
+- **Table-based Payload Settings**: Payload values displayed in compact table format with clickable color previews
 
 ## Development
 

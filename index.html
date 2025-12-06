@@ -374,6 +374,7 @@
             align-items: center;
             text-align: center;
             min-height: 0;
+            overflow: hidden;
         }
 
         /* Tile hover effect disabled */
@@ -386,18 +387,22 @@
             font-weight: bold;
             font-size: var(--tile-label-font-size, 1.3em);
             margin-bottom: 10px;
+            width: 100%;
             max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            box-sizing: border-box;
         }
 
         .tile-display {
             font-size: var(--tile-display-font-size, 1.1em);
+            width: 100%;
             max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            box-sizing: border-box;
         }
 
         /* Tile mode control bar */

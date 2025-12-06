@@ -71,12 +71,14 @@ No installation, no dependencies, no build process required!
 
 ### 3. Configuring Payload Values
 
+Payload values are displayed in a compact table format for easy configuration.
+
 1. In the topic configuration dialog, click **"Add Payload Value"**
 2. For each expected payload value:
    - **Payload Value**: The actual MQTT payload (e.g., `"on"`, `"23.5"`)
    - **Display Text**: Human-readable text (e.g., `"Light On"`, `"Room Temperature"`)
-   - **Background Color**: Click the color preview to select from 28 colors
-   - **Text Color**: Choose contrasting text color for readability
+   - **BG** (Background Color): Click the color preview to select from 28 colors
+   - **Text** (Text Color): Choose contrasting text color for readability
    - **Convert Value**: Value to send when using Convert function (optional)
 
 > 💡 Payload values are not required for Timer and Schedule functions
