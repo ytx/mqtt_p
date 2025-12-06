@@ -83,6 +83,8 @@ Payload values are displayed in a compact table format for easy configuration.
 
 > 💡 Payload values are not required for Timer and Schedule functions
 
+> 💡 **Wildcard (`*`)**: Set payload value to `*` to define default colors for any unmatched payloads
+
 > 💡 **Default colors**: First payload uses Teal/White (#20c997/#ffffff), subsequent payloads use Red/White (#ff0000/#ffffff)
 
 ### 4. Setting Up Functions

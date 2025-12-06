@@ -2032,14 +2032,18 @@
                     }
                 } else {
                     const currentPayloadValue = topic.payloadValues.find(pv => pv.value === topic.currentPayload);
+                    // Fallback to wildcard (*) if no exact match
+                    const wildcardValue = !currentPayloadValue ? topic.payloadValues.find(pv => pv.value === '*') : null;
+                    const effectivePayloadValue = currentPayloadValue || wildcardValue;
+
                     // Use jsonDisplayText if available, otherwise use payload value display or current payload
                     if (topic.jsonDisplayText) {
                         displayText = topic.jsonDisplayText;
                     } else {
                         displayText = currentPayloadValue ? currentPayloadValue.display : (topic.currentPayload || '');
                     }
-                    backgroundColor = currentPayloadValue ? currentPayloadValue.backgroundColor : '#ffffff';
-                    textColor = currentPayloadValue ? currentPayloadValue.textColor : '#000000';
+                    backgroundColor = effectivePayloadValue ? effectivePayloadValue.backgroundColor : '#ffffff';
+                    textColor = effectivePayloadValue ? effectivePayloadValue.textColor : '#000000';
                 }
 
                 const functionText = topic.functionType ?
@@ -2889,14 +2893,18 @@
                     }
                 } else {
                     const currentPayloadValue = topic.payloadValues.find(pv => pv.value === topic.currentPayload);
+                    // Fallback to wildcard (*) if no exact match
+                    const wildcardValue = !currentPayloadValue ? topic.payloadValues.find(pv => pv.value === '*') : null;
+                    const effectivePayloadValue = currentPayloadValue || wildcardValue;
+
                     // Use jsonDisplayText if available, otherwise use payload value display or current payload
                     if (topic.jsonDisplayText) {
                         displayText = topic.jsonDisplayText;
                     } else {
                         displayText = currentPayloadValue ? currentPayloadValue.display : (topic.currentPayload || '');
                     }
-                    backgroundColor = currentPayloadValue ? currentPayloadValue.backgroundColor : '#ffffff';
-                    textColor = currentPayloadValue ? currentPayloadValue.textColor : '#000000';
+                    backgroundColor = effectivePayloadValue ? effectivePayloadValue.backgroundColor : '#ffffff';
+                    textColor = effectivePayloadValue ? effectivePayloadValue.textColor : '#000000';
                 }
 
                 const tile = document.createElement('div');

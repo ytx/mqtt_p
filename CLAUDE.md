@@ -78,6 +78,7 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
   - Background Color: Table row background color (28-color palette)
   - Text Color: Table row text color (28-color palette)
   - Convert Value: Value used in convert function
+- **Wildcard Value (`*`)**: Set payload value to `*` to define default colors for unmatched payloads
 - **Default Colors for New Payloads**:
   - First payload: Teal background (#20c997), White text (#ffffff)
   - Subsequent payloads: Red background (#ff0000), White text (#ffffff)
