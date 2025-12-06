@@ -22,6 +22,11 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
   - Quick Publish: Right-click to publish predefined payload values
   - Duplicate: Creates a copy of the topic with "(Copy)" suffix
 
+- **JSON Path Extraction**: Extract values from JSON payloads
+  - JSON Path for Value: Extract specific element as payload value (dot notation, e.g., `data.status`)
+  - JSON Path for Display: Extract specific element for display text (e.g., `data.label`)
+  - Useful for processing structured JSON messages from IoT devices
+
 ### Drag & Drop Reordering
 - **Row Sorting**: Drag rows by the grip handle to reorder topics
 - **Visual Feedback**: Smooth animations during drag operations
@@ -206,6 +211,13 @@ location /mqtt {
 - **Auto-backup**: All changes saved automatically
 - **Theme Toggle**: Click theme button (bottom-right area)
 
+### 5. Font Size Settings
+- **Settings** → **"Font Size"** tab
+- **Label Font Size (%)**: Percentage of tile size for label text (default: 18%)
+- **Display Font Size (%)**: Percentage of tile size for display text (default: 14%)
+- Range: 5% to 50%
+- Changes apply immediately to tile view
+
 ## Configuration Examples
 
 ### Cycle Function Example
@@ -251,6 +263,8 @@ Configuration data is saved to localStorage in the following format:
       "name": "mqtt/topic",
       "functionType": "cycle",
       "functionEnabled": true,
+      "jsonPathValue": "data.status",
+      "jsonPathDisplay": "data.label",
       "payloadValues": [
         {
           "value": "on",
@@ -273,7 +287,9 @@ Configuration data is saved to localStorage in the following format:
     "mqttPassword": "pass",
     "statusTopic": "client/status",
     "onlinePayload": "online",
-    "awayPayload": "offline"
+    "awayPayload": "offline",
+    "tileLabelFontSize": 18,
+    "tileDisplayFontSize": 14
   },
   "theme": "dark"
 }
@@ -287,6 +303,8 @@ Configuration data is saved to localStorage in the following format:
   - Shows only Label and Display text
   - Click tiles to publish next value
   - Per-topic visibility control
+  - Dynamic font sizing based on tile dimensions
+  - Automatic text overflow handling (shrinks font, then shows "..." if needed)
 
 ### Control Bar (Right Side)
 - **Fullscreen Toggle**: Enter/exit fullscreen mode
@@ -343,4 +361,8 @@ This is a single-file MQTT application with the following development guidelines
 - Schedule function with day/time-based publishing
 - Timer function with countdown and audio alerts
 - Timer color priority system (payload values override timer colors)
+- JSON Path extraction for structured JSON payloads (dot notation)
+- Configurable tile view font sizes (label and display percentages)
+- Automatic text overflow handling in tile view (font shrinking and ellipsis)
+- Table-based Payload Value Settings with compact color selection
 - English UI throughout the application

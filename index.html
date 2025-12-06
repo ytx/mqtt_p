@@ -384,12 +384,20 @@
 
         .tile-label {
             font-weight: bold;
-            font-size: 1.3em;
+            font-size: var(--tile-label-font-size, 1.3em);
             margin-bottom: 10px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .tile-display {
-            font-size: 1.1em;
+            font-size: var(--tile-display-font-size, 1.1em);
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         /* Tile mode control bar */
@@ -555,6 +563,12 @@
             border-color: #444 !important;
         }
 
+        #topicModal .modal-dialog,
+        #settingsModal .modal-dialog {
+            max-width: 90%;
+            width: 90%;
+        }
+
         [data-theme="dark"] .modal-content {
             background-color: #2d2d2d;
             color: #e0e0e0;
@@ -565,6 +579,11 @@
             background-color: #3a3a3a;
             border-color: #555;
             color: #e0e0e0;
+        }
+
+        [data-theme="dark"] .form-control::placeholder {
+            color: #888;
+            opacity: 1;
         }
 
         [data-theme="dark"] .form-control:focus {
@@ -815,6 +834,9 @@
                             <a class="nav-link" data-bs-toggle="tab" href="#clientStatusTab">Client Status</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#fontSizeTab">Font Size</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" data-bs-toggle="tab" href="#dataTab">Data Management</a>
                         </li>
                     </ul>
@@ -854,6 +876,21 @@
                                 <div class="mb-3">
                                     <label for="awayPayload" class="form-label">Away Payload</label>
                                     <input type="text" class="form-control" id="awayPayload" value="away">
+                                </div>
+                            </form>
+                        </div>
+                        <div class="tab-pane fade" id="fontSizeTab">
+                            <p class="text-muted small">Configure font size for tile view. Sizes are calculated as a percentage of tile dimensions.</p>
+                            <form id="fontSizeForm">
+                                <div class="mb-3">
+                                    <label for="tileLabelFontSize" class="form-label">Label Font Size (%)</label>
+                                    <input type="number" class="form-control" id="tileLabelFontSize" value="18" min="5" max="50" step="1">
+                                    <div class="form-text">Percentage of tile size for label text (default: 18%)</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="tileDisplayFontSize" class="form-label">Display Font Size (%)</label>
+                                    <input type="number" class="form-control" id="tileDisplayFontSize" value="14" min="5" max="50" step="1">
+                                    <div class="form-text">Percentage of tile size for display text (default: 14%)</div>
                                 </div>
                             </form>
                         </div>
@@ -905,17 +942,41 @@
                             </div>
                         </div>
 
+                        <!-- JSON Path Settings -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="jsonPathValue" class="form-label">JSON Path for Value</label>
+                                <input type="text" class="form-control" id="jsonPathValue" placeholder="e.g., data.status">
+                                <div class="form-text">Extract value from JSON payload (dot notation)</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="jsonPathDisplay" class="form-label">JSON Path for Display</label>
+                                <input type="text" class="form-control" id="jsonPathDisplay" placeholder="e.g., data.label">
+                                <div class="form-text">Extract display text from JSON payload (optional)</div>
+                            </div>
+                        </div>
+
                         <!-- Payload Values Section -->
                         <div class="mb-4">
                             <h6>Payload Value Settings</h6>
-                            <div class="mb-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="addPayloadBtn">
-                                    <i class="bi bi-plus"></i> Add Payload Value
-                                </button>
-                            </div>
-                            <div id="payloadValues">
-                                <!-- Payload value entries will be inserted here -->
-                            </div>
+                            <table class="table table-sm" id="payloadValuesTable">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 25%">Payload Value</th>
+                                        <th style="width: 25%">Display Text</th>
+                                        <th style="width: 60px; text-align: center">BG</th>
+                                        <th style="width: 60px; text-align: center">Text</th>
+                                        <th style="width: 20%">Convert Value</th>
+                                        <th style="width: 40px"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="payloadValues">
+                                    <!-- Payload value entries will be inserted here -->
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="addPayloadBtn">
+                                <i class="bi bi-plus"></i> Add Payload Value
+                            </button>
                         </div>
 
                         <!-- Function Settings Section -->
@@ -1279,6 +1340,13 @@
 
             // Test sound button
             document.getElementById('testSoundBtn').addEventListener('click', testTimerSound);
+
+            // Window resize handler for tile font size
+            window.addEventListener('resize', function() {
+                if (currentView === 'tile') {
+                    updateTileFontSize();
+                }
+            });
         }
 
         // Auto-connect MQTT if settings are available
@@ -1385,6 +1453,30 @@
         }
 
         // Message handling
+        function extractJsonValue(payload, jsonPath) {
+            if (!jsonPath || jsonPath.trim() === '') return null;
+
+            try {
+                const obj = JSON.parse(payload);
+                const parts = jsonPath.trim().split('.');
+                let value = obj;
+
+                for (const part of parts) {
+                    if (value === null || value === undefined) return null;
+                    value = value[part];
+                }
+
+                // Convert to string if not already
+                if (value !== null && value !== undefined) {
+                    return typeof value === 'object' ? JSON.stringify(value) : String(value);
+                }
+                return null;
+            } catch (e) {
+                // Not valid JSON or path not found
+                return null;
+            }
+        }
+
         function handleMessage(topic, payload, retain) {
             const topicConfig = topics.find(t => t.name === topic);
             if (!topicConfig) return;
@@ -1392,8 +1484,27 @@
             // Store retain flag for later use
             topicConfig.lastRetain = retain;
 
+            // Store original payload
+            topicConfig.rawPayload = payload;
+
+            // Extract value from JSON if path is configured
+            let effectivePayload = payload;
+            if (topicConfig.jsonPathValue) {
+                const extracted = extractJsonValue(payload, topicConfig.jsonPathValue);
+                if (extracted !== null) {
+                    effectivePayload = extracted;
+                }
+            }
+
+            // Extract display text from JSON if path is configured
+            let jsonDisplayText = null;
+            if (topicConfig.jsonPathDisplay) {
+                jsonDisplayText = extractJsonValue(payload, topicConfig.jsonPathDisplay);
+            }
+            topicConfig.jsonDisplayText = jsonDisplayText;
+
             // Always update display regardless of function enabled status
-            updateTopicDisplay(topic, payload);
+            updateTopicDisplay(topic, effectivePayload);
 
             // Execute function only if enabled
             if (topicConfig.functionEnabled && topicConfig.functionType) {
@@ -1402,13 +1513,13 @@
                         handleTransfer(topicConfig, payload);
                         break;
                     case 'convert':
-                        handleConvert(topicConfig, payload);
+                        handleConvert(topicConfig, effectivePayload);
                         break;
                     case 'cycle':
-                        handleCycle(topicConfig, payload);
+                        handleCycle(topicConfig, effectivePayload);
                         break;
                     case 'timer':
-                        handleTimer(topicConfig, payload);
+                        handleTimer(topicConfig, effectivePayload);
                         break;
                 }
             }
@@ -1596,6 +1707,10 @@
                 document.getElementById('functionType').value = topicData.functionType || '';
                 document.getElementById('showInTileView').checked = topicData.showInTileView !== false;
 
+                // Load JSON path settings
+                document.getElementById('jsonPathValue').value = topicData.jsonPathValue || '';
+                document.getElementById('jsonPathDisplay').value = topicData.jsonPathDisplay || '';
+
                 // Load payload values
                 if (topicData.payloadValues) {
                     topicData.payloadValues.forEach(pv => {
@@ -1687,65 +1802,46 @@
                 }
             }
 
-            const entry = document.createElement('div');
-            entry.className = 'row mb-2 payload-entry';
+            const entry = document.createElement('tr');
+            entry.className = 'payload-entry';
 
             const bgColor = (data && data.backgroundColor) ? data.backgroundColor : defaultBgColor;
             const txtColor = (data && data.textColor) ? data.textColor : defaultTextColor;
 
             entry.innerHTML = `
-                <div class="col-md-3">
-                    <input type="text" class="form-control payload-value" placeholder="Payload Value" value="${data?.value || ''}">
-                </div>
-                <div class="col-md-3">
-                    <input type="text" class="form-control payload-display" placeholder="Display Text" value="${data?.display || ''}">
-                </div>
-                <div class="col-md-2">
-                    <div class="mb-2">
-                        <label class="form-label small">Background</label>
-                        <div class="d-flex align-items-center">
-                            <div class="color-preview" style="width: 25px; height: 25px; border: 1px solid #ddd; border-radius: 4px; background-color: ${bgColor}; margin-right: 8px; cursor: pointer;" data-target="backgroundColor"></div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary color-palette-btn" data-target="backgroundColor" style="font-size: 0.75rem; padding: 2px 8px;">Select</button>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="form-label small">Text Color</label>
-                        <div class="d-flex align-items-center">
-                            <div class="color-preview" style="width: 25px; height: 25px; border: 1px solid #ddd; border-radius: 4px; background-color: ${txtColor}; margin-right: 8px; cursor: pointer;" data-target="textColor"></div>
-                            <button type="button" class="btn btn-sm btn-outline-secondary color-palette-btn" data-target="textColor" style="font-size: 0.75rem; padding: 2px 8px;">Select</button>
-                        </div>
-                    </div>
+                <td>
+                    <input type="text" class="form-control form-control-sm payload-value" value="${data?.value || ''}">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm payload-display" value="${data?.display || ''}">
+                </td>
+                <td style="text-align: center">
+                    <div class="color-preview" style="width: 28px; height: 28px; border: 1px solid #ddd; border-radius: 4px; background-color: ${bgColor}; cursor: pointer; display: inline-block;" data-target="backgroundColor"></div>
                     <input type="hidden" class="payload-background-color" value="${bgColor}">
+                </td>
+                <td style="text-align: center">
+                    <div class="color-preview" style="width: 28px; height: 28px; border: 1px solid #ddd; border-radius: 4px; background-color: ${txtColor}; cursor: pointer; display: inline-block;" data-target="textColor"></div>
                     <input type="hidden" class="payload-text-color" value="${txtColor}">
-                </div>
-                <div class="col-md-2">
-                    <input type="text" class="form-control convert-value" placeholder="Convert Value" value="${data?.convertValue || ''}">
-                </div>
-                <div class="col-md-1">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm convert-value" value="${data?.convertValue || ''}">
+                </td>
+                <td>
                     <button type="button" class="btn btn-outline-danger btn-sm remove-payload">
                         <i class="bi bi-trash"></i>
                     </button>
-                </div>
+                </td>
             `;
 
             entry.querySelector('.remove-payload').addEventListener('click', function() {
                 entry.remove();
             });
 
-            // Add color palette event listeners
-            const colorPaletteBtns = entry.querySelectorAll('.color-palette-btn');
-            colorPaletteBtns.forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    showColorPalette(this, entry);
-                });
-            });
-
+            // Add color palette event listeners to color previews
             const colorPreviews = entry.querySelectorAll('.color-preview');
             colorPreviews.forEach(preview => {
                 preview.addEventListener('click', function() {
-                    const btn = this.parentElement.querySelector('.color-palette-btn');
-                    showColorPalette(btn, entry);
+                    showColorPalette(this, entry);
                 });
             });
 
@@ -1792,6 +1888,8 @@
                 functionType: document.getElementById('functionType').value,
                 functionEnabled: true,
                 showInTileView: document.getElementById('showInTileView').checked,
+                jsonPathValue: document.getElementById('jsonPathValue').value.trim() || null,
+                jsonPathDisplay: document.getElementById('jsonPathDisplay').value.trim() || null,
                 payloadValues: [],
                 currentValue: null,
                 currentPayload: null
@@ -1929,7 +2027,12 @@
                     }
                 } else {
                     const currentPayloadValue = topic.payloadValues.find(pv => pv.value === topic.currentPayload);
-                    displayText = currentPayloadValue ? currentPayloadValue.display : (topic.currentPayload || '');
+                    // Use jsonDisplayText if available, otherwise use payload value display or current payload
+                    if (topic.jsonDisplayText) {
+                        displayText = topic.jsonDisplayText;
+                    } else {
+                        displayText = currentPayloadValue ? currentPayloadValue.display : (topic.currentPayload || '');
+                    }
                     backgroundColor = currentPayloadValue ? currentPayloadValue.backgroundColor : '#ffffff';
                     textColor = currentPayloadValue ? currentPayloadValue.textColor : '#000000';
                 }
@@ -2151,10 +2254,7 @@
                     mqttClient.subscribe(duplicatedTopic.name);
                 }
 
-                // Open the edit modal for the duplicated topic
                 hideContextMenu();
-                currentTopicIndex = newIndex;
-                showTopicModal();
             } else {
                 hideContextMenu();
             }
@@ -2183,10 +2283,17 @@
                 mqttPassword: document.getElementById('mqttPassword').value,
                 statusTopic: document.getElementById('statusTopic').value,
                 onlinePayload: document.getElementById('onlinePayload').value,
-                awayPayload: document.getElementById('awayPayload').value
+                awayPayload: document.getElementById('awayPayload').value,
+                tileLabelFontSize: parseInt(document.getElementById('tileLabelFontSize').value) || 18,
+                tileDisplayFontSize: parseInt(document.getElementById('tileDisplayFontSize').value) || 14
             };
 
             localStorage.setItem('mqttPanelSettings', JSON.stringify(settings));
+
+            // Update tile font size if in tile view
+            if (currentView === 'tile') {
+                updateTileFontSize();
+            }
         }
 
         function loadSettings() {
@@ -2200,7 +2307,21 @@
                 document.getElementById('statusTopic').value = parsed.statusTopic || '';
                 document.getElementById('onlinePayload').value = parsed.onlinePayload || '';
                 document.getElementById('awayPayload').value = parsed.awayPayload || '';
+                document.getElementById('tileLabelFontSize').value = parsed.tileLabelFontSize || 18;
+                document.getElementById('tileDisplayFontSize').value = parsed.tileDisplayFontSize || 14;
             }
+        }
+
+        function getFontSizeSettings() {
+            const settings = localStorage.getItem('mqttPanelSettings');
+            if (settings) {
+                const parsed = JSON.parse(settings);
+                return {
+                    labelPercent: parsed.tileLabelFontSize || 18,
+                    displayPercent: parsed.tileDisplayFontSize || 14
+                };
+            }
+            return { labelPercent: 18, displayPercent: 14 };
         }
 
         function saveTopics() {
@@ -2252,8 +2373,8 @@
         }
 
         // Color palette functions
-        function showColorPalette(button, entry) {
-            const target = button.dataset.target;
+        function showColorPalette(element, entry) {
+            const target = element.dataset.target;
             const currentColor = entry.querySelector(`.payload-${target.toLowerCase().replace('color', '')}-color`).value;
 
             // Create modal overlay
@@ -2763,7 +2884,12 @@
                     }
                 } else {
                     const currentPayloadValue = topic.payloadValues.find(pv => pv.value === topic.currentPayload);
-                    displayText = currentPayloadValue ? currentPayloadValue.display : (topic.currentPayload || '');
+                    // Use jsonDisplayText if available, otherwise use payload value display or current payload
+                    if (topic.jsonDisplayText) {
+                        displayText = topic.jsonDisplayText;
+                    } else {
+                        displayText = currentPayloadValue ? currentPayloadValue.display : (topic.currentPayload || '');
+                    }
                     backgroundColor = currentPayloadValue ? currentPayloadValue.backgroundColor : '#ffffff';
                     textColor = currentPayloadValue ? currentPayloadValue.textColor : '#000000';
                 }
@@ -2785,6 +2911,79 @@
 
                 tileView.appendChild(tile);
             });
+
+            // Calculate optimal font size based on tile dimensions
+            requestAnimationFrame(() => {
+                updateTileFontSize();
+            });
+        }
+
+        function updateTileFontSize() {
+            const tileView = document.getElementById('tileView');
+            const tiles = tileView.querySelectorAll('.tile');
+            if (tiles.length === 0) return;
+
+            // Get the first tile's dimensions (all tiles have the same size)
+            const tile = tiles[0];
+            const tileHeight = tile.clientHeight;
+            const tileWidth = tile.clientWidth;
+
+            // Get font size settings
+            const fontSettings = getFontSizeSettings();
+
+            // Calculate font sizes based on tile dimensions
+            // Use the smaller dimension to ensure text fits
+            const minDimension = Math.min(tileHeight, tileWidth);
+
+            // Use configured percentages
+            const labelFontSize = Math.max(12, Math.min(48, minDimension * (fontSettings.labelPercent / 100)));
+            const displayFontSize = Math.max(10, Math.min(40, minDimension * (fontSettings.displayPercent / 100)));
+
+            // Apply to all tiles via CSS custom properties on the container
+            tileView.style.setProperty('--tile-label-font-size', `${labelFontSize}px`);
+            tileView.style.setProperty('--tile-display-font-size', `${displayFontSize}px`);
+
+            // Adjust individual tiles if text overflows
+            adjustTileTextOverflow(tiles, labelFontSize, displayFontSize);
+        }
+
+        function adjustTileTextOverflow(tiles, baseLabelSize, baseDisplaySize) {
+            const minFontSize = 10; // Minimum font size in pixels
+
+            tiles.forEach(tile => {
+                const labelEl = tile.querySelector('.tile-label');
+                const displayEl = tile.querySelector('.tile-display');
+
+                // Reset to base font sizes first
+                if (labelEl) {
+                    labelEl.style.fontSize = `${baseLabelSize}px`;
+                }
+                if (displayEl) {
+                    displayEl.style.fontSize = `${baseDisplaySize}px`;
+                }
+
+                // Adjust label font size if overflowing
+                if (labelEl && isTextOverflowing(labelEl)) {
+                    let fontSize = baseLabelSize;
+                    while (fontSize > minFontSize && isTextOverflowing(labelEl)) {
+                        fontSize -= 1;
+                        labelEl.style.fontSize = `${fontSize}px`;
+                    }
+                }
+
+                // Adjust display font size if overflowing
+                if (displayEl && isTextOverflowing(displayEl)) {
+                    let fontSize = baseDisplaySize;
+                    while (fontSize > minFontSize && isTextOverflowing(displayEl)) {
+                        fontSize -= 1;
+                        displayEl.style.fontSize = `${fontSize}px`;
+                    }
+                }
+            });
+        }
+
+        function isTextOverflowing(element) {
+            return element.scrollWidth > element.clientWidth;
         }
 
         function publishNextValue(topicIndex) {

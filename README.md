@@ -25,6 +25,8 @@ A modern, single-file MQTT message processing application with dark mode, drag &
 - ⏱️ **Timer** - Countdown timer with audio alerts and overtime tracking
 - 📡 **Client Status** - Online/offline status reporting with will message support
 - 🔖 **Retain Flags** - Configurable message persistence on MQTT broker
+- 📝 **JSON Path** - Extract values from JSON payloads using dot notation
+- 🔤 **Dynamic Font Size** - Configurable tile font sizes with automatic overflow handling
 
 ## 🚀 Quick Start
 
@@ -63,6 +65,9 @@ No installation, no dependencies, no build process required!
    - **Label**: A friendly name for your topic
    - **Topic Name**: The MQTT topic path (e.g., `home/sensors/temperature`)
    - **Show in Tile View**: Toggle whether to display in tile mode
+3. (Optional) Configure **JSON Path** for structured payloads:
+   - **JSON Path for Value**: Extract specific element as payload value (e.g., `data.status`)
+   - **JSON Path for Display**: Extract specific element for display text (e.g., `data.label`)
 
 ### 3. Configuring Payload Values
 
@@ -154,6 +159,8 @@ Choose one function type per topic:
 - **🖱️ Click Tile**: Publish next payload value (cycles through values)
 - Automatically calculates optimal grid size
 - Per-topic visibility control
+- Dynamic font sizing based on tile dimensions
+- Automatic text overflow handling (shrinks font, then shows "..." if needed)
 
 ### Control Bar (Right Side)
 
@@ -231,6 +238,26 @@ Payload Values:
 
 **Function Control**: Turn off forwarding while still monitoring motion detection status.
 
+### JSON Payload Extraction
+
+```
+Label: IoT Sensor
+Topic: sensors/device1
+JSON Path for Value: data.status
+JSON Path for Display: data.label
+
+Payload Values:
+- "active" → Display: "Active" → Background: Green
+- "idle" → Display: "Idle" → Background: Gray
+```
+
+**Example JSON Payload**:
+```json
+{"data": {"status": "active", "label": "Sensor Online", "temp": 25.5}}
+```
+
+**Behavior**: Extracts `data.status` ("active") as payload value for color matching, and `data.label` ("Sensor Online") as display text.
+
 ## 🔖 Retain Flags
 
 Different operations use retain flags differently to control message persistence on the MQTT broker:
@@ -268,6 +295,14 @@ Different operations use retain flags differently to control message persistence
 - Export regularly to preserve configurations
 - Store JSON files in version control
 - Share configurations between team members
+
+### Font Size Settings
+1. **Settings** → **"Font Size"** tab
+2. Configure tile view font sizes:
+   - **Label Font Size (%)**: Percentage of tile size for label text (default: 18%)
+   - **Display Font Size (%)**: Percentage of tile size for display text (default: 14%)
+3. Range: 5% to 50%
+4. Changes apply immediately to tile view
 
 ## 🔗 MQTT Broker Setup
 
