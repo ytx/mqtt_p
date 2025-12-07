@@ -177,10 +177,9 @@ Choose one function type per topic:
 
 ### Status Indicators
 
-- **🟢 Top-right corner**: Connected to MQTT broker
-- **🔴 Top-right corner**: Disconnected from broker
+- **Control Bar** (Right side): Background turns red when disconnected from MQTT broker
 - **Function Buttons** (List view):
-  - **Green (ON)**: Function active - processes and forwards messages
+  - **Green (ON)**: Function active - processes messages
   - **Gray (OFF)**: Function inactive - monitors only, no processing
 
 ## 🔧 Configuration Examples
