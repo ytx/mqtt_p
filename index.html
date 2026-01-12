@@ -1239,6 +1239,8 @@
         let currentTopicIndex = -1;
         let selectedRow = null;
         let timerIntervals = {}; // Store timer interval IDs by topic name
+        let reconnectInterval = null; // Store reconnect check interval ID
+        let isManualDisconnect = false; // Track if disconnect was manual
 
         // Color palette definition
         const colorPalette = [
@@ -1365,6 +1367,7 @@
 
         // MQTT connection management
         function connectMQTT() {
+            isManualDisconnect = false;
             const host = document.getElementById('mqttHost').value;
             const port = document.getElementById('mqttPort').value;
             const username = document.getElementById('mqttUsername').value;
@@ -1415,6 +1418,7 @@
 
                 subscribeToTopics();
                 startScheduleChecker();
+                startReconnectCheck();
             });
 
             mqttClient.on('message', function(topic, message, packet) {
@@ -1439,12 +1443,32 @@
         }
 
         function disconnectMQTT() {
+            isManualDisconnect = true;
+            stopReconnectCheck();
             if (mqttClient) {
                 mqttClient.end();
                 mqttClient = null;
             }
             document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
             document.getElementById('tileControlBar').classList.add('disconnected');
+        }
+
+        function startReconnectCheck() {
+            stopReconnectCheck();
+            // Check connection every 30 seconds
+            reconnectInterval = setInterval(() => {
+                if (!mqttClient && !isManualDisconnect) {
+                    console.log('Connection lost. Attempting to reconnect...');
+                    connectMQTT();
+                }
+            }, 30000);
+        }
+
+        function stopReconnectCheck() {
+            if (reconnectInterval) {
+                clearInterval(reconnectInterval);
+                reconnectInterval = null;
+            }
         }
 
         function subscribeToTopics() {
