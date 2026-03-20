@@ -110,7 +110,7 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
 
 ### Remote Topics Configuration Sync
 - **MQTT-based Configuration**: Read/write topic configuration via MQTT topics
-  - Derives base prefix from Status Topic (e.g., `clients/livingroom/status` → `clients/livingroom/`)
+  - Uses Status Topic directly as prefix (e.g., Status Topic `clients/livingroom` → `clients/livingroom/topics`)
   - Requires Status Topic to be configured; feature is disabled without it
 - **Topics**:
   - `clients/<hostname>/topics`: Topic configuration JSON (pretty format, retain)

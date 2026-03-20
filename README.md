@@ -314,8 +314,8 @@ Different operations use retain flags differently to control message persistence
 Topic configuration can be read and written via MQTT, enabling external tools to manage topics.
 
 #### Prerequisites
-- **Client Status** must be configured with a Status Topic (e.g., `clients/livingroom/status`)
-- The base prefix is derived from the Status Topic (e.g., `clients/livingroom/`)
+- **Client Status** must be configured with a Status Topic (e.g., `clients/livingroom`)
+- The Status Topic is used directly as the prefix (e.g., `clients/livingroom/topics`)
 
 #### MQTT Topics
 

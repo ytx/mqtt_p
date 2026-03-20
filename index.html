@@ -1511,17 +1511,10 @@
         }
 
         // Topics config sync via MQTT
-        function getTopicsConfigPrefix() {
+        function getTopicsConfigTopic() {
             const statusTopic = document.getElementById('statusTopic').value;
             if (!statusTopic) return null;
-            const lastSlash = statusTopic.lastIndexOf('/');
-            if (lastSlash < 0) return null;
-            return statusTopic.substring(0, lastSlash + 1);
-        }
-
-        function getTopicsConfigTopic() {
-            const prefix = getTopicsConfigPrefix();
-            return prefix ? prefix + 'topics' : null;
+            return statusTopic + '/topics';
         }
 
         function stripRuntimeFields(topicsArray) {

@@ -314,8 +314,8 @@ JSON Path for Display: data.label
 MQTTを介してトピック設定の読み書きが可能で、外部ツールからのトピック管理を実現します。
 
 #### 前提条件
-- **Client Status** でStatus Topicが設定されていること（例：`clients/livingroom/status`）
-- ベースプレフィックスはStatus Topicから導出されます（例：`clients/livingroom/`）
+- **Client Status** でStatus Topicが設定されていること（例：`clients/livingroom`）
+- Status Topicがそのままプレフィックスとして使用されます（例：`clients/livingroom/topics`）
 
 #### MQTTトピック
 
