@@ -1241,6 +1241,8 @@
         let timerIntervals = {}; // Store timer interval IDs by topic name
         let reconnectInterval = null; // Store reconnect check interval ID
         let isManualDisconnect = false; // Track if disconnect was manual
+        let ignoreNextTopicsMessage = false; // Ignore echo of own publish
+        let lastPublishedTopicsJson = null; // Track last published config for diff
 
         // Color palette definition
         const colorPalette = [
@@ -1417,6 +1419,8 @@
                 }
 
                 subscribeToTopics();
+                subscribeTopicsConfig();
+                publishTopicsConfig();
                 startScheduleChecker();
                 startReconnectCheck();
             });
@@ -1506,7 +1510,135 @@
             }
         }
 
+        // Topics config sync via MQTT
+        function getTopicsConfigPrefix() {
+            const statusTopic = document.getElementById('statusTopic').value;
+            if (!statusTopic) return null;
+            const lastSlash = statusTopic.lastIndexOf('/');
+            if (lastSlash < 0) return null;
+            return statusTopic.substring(0, lastSlash + 1);
+        }
+
+        function getTopicsConfigTopic() {
+            const prefix = getTopicsConfigPrefix();
+            return prefix ? prefix + 'topics' : null;
+        }
+
+        function stripRuntimeFields(topicsArray) {
+            return topicsArray.map(t => {
+                const copy = Object.assign({}, t);
+                delete copy.currentPayload;
+                delete copy.currentValue;
+                delete copy.lastRetain;
+                delete copy.rawPayload;
+                delete copy.jsonDisplayText;
+                return copy;
+            });
+        }
+
+        function publishTopicsConfig() {
+            const configTopic = getTopicsConfigTopic();
+            if (!configTopic || !mqttClient || !mqttClient.connected) return;
+
+            const configJson = JSON.stringify(stripRuntimeFields(topics), null, 2);
+            if (configJson === lastPublishedTopicsJson) return;
+
+            lastPublishedTopicsJson = configJson;
+            ignoreNextTopicsMessage = true;
+            mqttClient.publish(configTopic, configJson, { retain: true });
+            console.log('Published topics config to ' + configTopic);
+        }
+
+        function validateTopicsConfig(data) {
+            if (!Array.isArray(data)) {
+                return 'Top-level value must be an array';
+            }
+            for (let i = 0; i < data.length; i++) {
+                if (!data[i] || typeof data[i] !== 'object') {
+                    return 'Topic at index ' + i + ': must be an object';
+                }
+                if (!data[i].name || typeof data[i].name !== 'string') {
+                    return 'Topic at index ' + i + ': missing or invalid "name" field';
+                }
+                if (data[i].payloadValues !== undefined && !Array.isArray(data[i].payloadValues)) {
+                    return 'Topic at index ' + i + ': "payloadValues" must be an array';
+                }
+            }
+            return null;
+        }
+
+        function handleTopicsConfigMessage(payload) {
+            const configTopic = getTopicsConfigTopic();
+            const statusTopic = configTopic + '/status';
+            const errorsTopic = configTopic + '/errors';
+
+            // Parse JSON
+            let data;
+            try {
+                data = JSON.parse(payload);
+            } catch (e) {
+                mqttClient.publish(statusTopic, 'error', { retain: true });
+                mqttClient.publish(errorsTopic, 'Invalid JSON: ' + e.message, { retain: true });
+                return;
+            }
+
+            // Validate
+            const validationError = validateTopicsConfig(data);
+            if (validationError) {
+                mqttClient.publish(statusTopic, 'error', { retain: true });
+                mqttClient.publish(errorsTopic, validationError, { retain: true });
+                return;
+            }
+
+            // Compare with current config (ignoring runtime fields)
+            const incomingJson = JSON.stringify(stripRuntimeFields(data));
+            const currentJson = JSON.stringify(stripRuntimeFields(topics));
+            if (incomingJson === currentJson) return;
+
+            // Apply: strip runtime fields from incoming, preserve runtime state where topic matches
+            topics = data.map(incoming => {
+                delete incoming.currentPayload;
+                delete incoming.currentValue;
+                delete incoming.lastRetain;
+                delete incoming.rawPayload;
+                delete incoming.jsonDisplayText;
+                return incoming;
+            });
+
+            // Save without publishing back (avoid infinite loop)
+            localStorage.setItem('mqttPanelTopics', JSON.stringify(topics));
+            lastPublishedTopicsJson = JSON.stringify(stripRuntimeFields(topics), null, 2);
+
+            if (currentView === 'tile') {
+                renderTileView();
+            } else {
+                renderTopics();
+            }
+
+            mqttClient.publish(statusTopic, 'success', { retain: true });
+            console.log('Topics config updated from MQTT');
+        }
+
+        function subscribeTopicsConfig() {
+            const configTopic = getTopicsConfigTopic();
+            if (configTopic && mqttClient && mqttClient.connected) {
+                mqttClient.subscribe(configTopic);
+                console.log('Subscribed to topics config: ' + configTopic);
+            }
+        }
+
         function handleMessage(topic, payload, retain) {
+            // Handle topics config sync
+            const configTopic = getTopicsConfigTopic();
+            if (configTopic && topic === configTopic) {
+                if (ignoreNextTopicsMessage) {
+                    ignoreNextTopicsMessage = false;
+                    return;
+                }
+                handleTopicsConfigMessage(payload);
+                return;
+            }
+
             const topicConfig = topics.find(t => t.name === topic);
             if (!topicConfig) return;
 
@@ -2003,6 +2135,7 @@
             }
 
             saveTopics();
+            publishTopicsConfig();
             renderTopics();
 
             if (mqttClient && mqttClient.connected) {
@@ -2195,6 +2328,7 @@
         function toggleFunction(index) {
             topics[index].functionEnabled = !topics[index].functionEnabled;
             saveTopics();
+            publishTopicsConfig();
 
             if (currentView === 'tile') {
                 renderTileView();
@@ -2256,6 +2390,7 @@
                 if (confirm('Delete this topic?')) {
                     topics.splice(selectedRow, 1);
                     saveTopics();
+                    publishTopicsConfig();
                     renderTopics();
                 }
             }
@@ -2280,6 +2415,7 @@
                 topics.splice(newIndex, 0, duplicatedTopic);
 
                 saveTopics();
+                publishTopicsConfig();
                 renderTopics();
 
                 // Auto-subscribe if connected
@@ -2393,6 +2529,7 @@
                     });
                     topics = data.topics;
                     saveTopics();
+                    publishTopicsConfig();
                     renderTopics();
                 }
                 if (data.settings) {
@@ -2708,6 +2845,7 @@
 
             // Save and re-render
             saveTopics();
+            publishTopicsConfig();
             renderTopics();
 
             console.log(`Moved topic from position ${fromIndex} to ${toIndex}`);

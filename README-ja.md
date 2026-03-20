@@ -27,6 +27,7 @@
 - 🔖 **リテインフラグ** - MQTTブローカーへのメッセージ永続化の設定可能
 - 📝 **JSON Path** - ドット記法でJSONペイロードから値を抽出
 - 🔤 **動的フォントサイズ** - タイルフォントサイズの設定とオーバーフロー自動処理
+- 🔗 **リモート設定同期** - MQTTを介したトピック設定の読み書きによる外部管理
 
 ## 🚀 クイックスタート
 
@@ -272,6 +273,7 @@ JSON Path for Display: data.label
 - **クイックパブリッシュ**（コンテキストメニュー）: パブリッシュされた値は保持される
 - **インラインペイロード編集**: パブリッシュされた値は保持される
 - **クライアントステータス**: オンラインメッセージとオフラインメッセージの両方が保持される
+- **リモートトピック設定**: 設定JSON、ステータス、エラーが保持される
 
 ### 🔄 受信メッセージに従う
 - **転送機能（Transfer）**: 受信したメッセージのリテインフラグを使用
@@ -306,6 +308,46 @@ JSON Path for Display: data.label
    - **Display Font Size (%)**: 表示テキストのタイルサイズに対する割合（デフォルト: 14%）
 3. 範囲: 5% ～ 50%
 4. 変更は即座にタイル表示に適用
+
+### 🔗 リモートトピック設定同期
+
+MQTTを介してトピック設定の読み書きが可能で、外部ツールからのトピック管理を実現します。
+
+#### 前提条件
+- **Client Status** でStatus Topicが設定されていること（例：`clients/livingroom/status`）
+- ベースプレフィックスはStatus Topicから導出されます（例：`clients/livingroom/`）
+
+#### MQTTトピック
+
+| トピック | 用途 | リテイン |
+|---|---|---|
+| `clients/<hostname>/topics` | トピック設定JSON（整形済み） | あり |
+| `clients/<hostname>/topics/status` | 外部更新後の `success` または `error` | あり |
+| `clients/<hostname>/topics/errors` | ステータスが `error` の場合のエラー詳細 | あり |
+
+#### 動作
+
+**パブリッシュ（MQTT Panel → 外部）**:
+- MQTT接続時および設定変更時（追加/編集/削除/複製/並び替え/インポート/機能切り替え）に設定をパブリッシュ
+- 実行時の状態（`currentPayload`, `currentValue`）はJSONから除外
+- 設定が実際に変更された場合のみパブリッシュ
+
+**受信（外部 → MQTT Panel）**:
+- `clients/<hostname>/topics` にトピックオブジェクトのJSON配列をパブリッシュ
+- 各トピックオブジェクトには少なくとも `name` フィールドが必要
+- 成功時：トピックが置換され、UIが再描画され、ステータストピックに `success` をパブリッシュ
+- エラー時：ステータストピックに `error`、エラートピックに詳細をパブリッシュ
+- 受信した設定が現在の設定と同一の場合、何もしない
+
+#### 例：外部からトピックを更新
+
+```bash
+# mosquitto_pubで新しい設定をパブリッシュ
+mosquitto_pub -h broker.example.com -t "clients/livingroom/topics" -r -f topics.json
+
+# 結果を確認
+mosquitto_sub -h broker.example.com -t "clients/livingroom/topics/status" -C 1
+```
 
 ## 🔗 MQTTブローカー設定
 

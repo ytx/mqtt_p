@@ -27,6 +27,7 @@ A modern, single-file MQTT message processing application with dark mode, drag &
 - 🔖 **Retain Flags** - Configurable message persistence on MQTT broker
 - 📝 **JSON Path** - Extract values from JSON payloads using dot notation
 - 🔤 **Dynamic Font Size** - Configurable tile font sizes with automatic overflow handling
+- 🔗 **Remote Config Sync** - Read/write topic configuration via MQTT for external management
 
 ## 🚀 Quick Start
 
@@ -272,6 +273,7 @@ Different operations use retain flags differently to control message persistence
 - **Quick Publish** (Context Menu): Published values are retained
 - **Inline Payload Edit**: Published values are retained
 - **Client Status**: Both online and away messages are retained
+- **Remote Topics Config**: Configuration JSON, status, and errors are retained
 
 ### 🔄 Following Source Message
 - **Transfer Function**: Uses retain flag from received message
@@ -306,6 +308,46 @@ Different operations use retain flags differently to control message persistence
    - **Display Font Size (%)**: Percentage of tile size for display text (default: 14%)
 3. Range: 5% to 50%
 4. Changes apply immediately to tile view
+
+### 🔗 Remote Topics Configuration Sync
+
+Topic configuration can be read and written via MQTT, enabling external tools to manage topics.
+
+#### Prerequisites
+- **Client Status** must be configured with a Status Topic (e.g., `clients/livingroom/status`)
+- The base prefix is derived from the Status Topic (e.g., `clients/livingroom/`)
+
+#### MQTT Topics
+
+| Topic | Purpose | Retain |
+|---|---|---|
+| `clients/<hostname>/topics` | Topic configuration JSON (pretty format) | Yes |
+| `clients/<hostname>/topics/status` | `success` or `error` after external update | Yes |
+| `clients/<hostname>/topics/errors` | Error details when status is `error` | Yes |
+
+#### How It Works
+
+**Publishing (MQTT Panel → External)**:
+- Configuration is published on MQTT connect and after any config change (add/edit/delete/duplicate/reorder/import/function toggle)
+- Runtime state (`currentPayload`, `currentValue`) is excluded from the published JSON
+- Only publishes when configuration has actually changed
+
+**Receiving (External → MQTT Panel)**:
+- Subscribe to `clients/<hostname>/topics` and publish a JSON array of topic objects
+- Each topic object must have at least a `name` field
+- On success: topics are replaced, UI is re-rendered, `success` is published to status topic
+- On error: `error` is published to status topic, details to errors topic
+- If the received config is identical to current config, no action is taken
+
+#### Example: Update Topics Externally
+
+```bash
+# Publish new configuration via mosquitto_pub
+mosquitto_pub -h broker.example.com -t "clients/livingroom/topics" -r -f topics.json
+
+# Check result
+mosquitto_sub -h broker.example.com -t "clients/livingroom/topics/status" -C 1
+```
 
 ## 🔗 MQTT Broker Setup
 

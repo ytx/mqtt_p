@@ -108,11 +108,36 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
   - Note: MQTT broker must support WSS connections for HTTPS deployments
   - Alternative: Use reverse proxy (nginx/apache) to provide WSS endpoint
 
+### Remote Topics Configuration Sync
+- **MQTT-based Configuration**: Read/write topic configuration via MQTT topics
+  - Derives base prefix from Status Topic (e.g., `clients/livingroom/status` → `clients/livingroom/`)
+  - Requires Status Topic to be configured; feature is disabled without it
+- **Topics**:
+  - `clients/<hostname>/topics`: Topic configuration JSON (pretty format, retain)
+  - `clients/<hostname>/topics/status`: `success` or `error` (retain)
+  - `clients/<hostname>/topics/errors`: Error details when status is `error` (retain)
+- **Publishing (local → external)**:
+  - Publishes current config on MQTT connect and after any config change
+  - Config changes: topic add/edit/delete/duplicate, function toggle, reorder, import
+  - Runtime state changes (currentPayload, currentValue) do NOT trigger publish
+  - Skips publish if config hasn't changed (JSON comparison)
+- **Receiving (external → local)**:
+  - Subscribes to config topic on MQTT connect
+  - Validates incoming JSON (must be array, each element must have `name` field)
+  - On validation error: publishes `error` to status topic and details to errors topic
+  - On success with changes: replaces topics array, saves to localStorage, re-renders UI, publishes `success`
+  - If no changes detected: does nothing (no echo)
+  - Runtime fields (`currentPayload`, `currentValue`) are stripped on publish and ignored on receive
+- **Echo Prevention**: Ignores own publish echo using a flag
+- **Infinite Loop Prevention**: When applying external config, saves directly to localStorage without re-publishing
+- **JSON Format**: Array of topic objects excluding runtime fields (`currentPayload`, `currentValue`, `lastRetain`, `rawPayload`, `jsonDisplayText`)
+
 ### Data Management
 - **Auto-save**: All settings saved to localStorage automatically
 - **Export**: Full configuration export to JSON format
 - **Import**: JSON configuration import with backward compatibility
 - **Payload Editing**: Click-to-edit payload values with direct MQTT publish
+- **Remote Sync**: Topic configuration synchronized via MQTT (see Remote Topics Configuration Sync)
 
 ### Retain Flags
 MQTT messages published by different functions have varying retain flag behaviors:
@@ -124,6 +149,7 @@ MQTT messages published by different functions have varying retain flag behavior
 - Quick Publish (Context Menu): Published values retained
 - Inline Payload Edit: Published values retained
 - Client Status: Both online and away messages retained
+- Remote Topics Config: Configuration JSON, status, and errors retained
 
 **Following Source Message Retain Flag**:
 - Transfer Function: Uses retain flag from received message
@@ -368,4 +394,5 @@ This is a single-file MQTT application with the following development guidelines
 - Configurable tile view font sizes (label and display percentages)
 - Automatic text overflow handling in tile view (font shrinking and ellipsis)
 - Table-based Payload Value Settings with compact color selection
+- Remote topics configuration sync via MQTT
 - English UI throughout the application
