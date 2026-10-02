@@ -1069,6 +1069,8 @@
         let browserMode = 'multi'; // 'multi' (bulk add) or 'single' (pick for the topic form)
         let browserFilter = '#'; // Subscribed topic filter
         let browserTopics = new Map(); // topic name -> { payload, retain }
+        let browserRows = new Map(); // topic name -> table row currently shown
+        let browserDirty = new Set(); // topics changed since the last render
         let browserSelected = new Set();
         let browserTruncated = false;
         let browserError = null;
@@ -1301,7 +1303,16 @@
             // Build connection URL with appropriate protocol
             const url = `${protocol}${host}:${port}/mqtt`;
 
-            const client = mqtt.connect(url, options);
+            // An invalid URL (e.g. port out of range) makes mqtt.connect throw
+            let client;
+            try {
+                client = mqtt.connect(url, options);
+            } catch (error) {
+                console.error('MQTT connect failed:', error);
+                setConnectionState('disconnected');
+                alert('Cannot connect: ' + error.message);
+                return;
+            }
             mqttClient = client;
             reconnectWaiting = false;
             setConnectionState('reconnecting');
@@ -1378,9 +1389,16 @@
 
         // Topic browser: MQTT has no topic listing, so subscribe to a wildcard
         // filter while the modal is open and collect whatever arrives
+        function escapeHtml(text) {
+            return String(text).replace(/[&<>"']/g, ch => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[ch]));
+        }
+
+        // Labels are rendered as HTML, so a label derived from a broker topic is escaped
         function defaultLabelForTopic(name) {
             const segments = name.split('/').filter(s => s !== '');
-            return segments.length > 0 ? segments[segments.length - 1] : name;
+            return escapeHtml(segments.length > 0 ? segments[segments.length - 1] : name);
         }
 
         function openTopicBrowser(mode) {
@@ -1424,6 +1442,8 @@
             browserActive = false;
             browserTopics.clear();
             browserSelected.clear();
+            browserRows.clear();
+            browserDirty.clear();
             if (browserRenderTimer) {
                 clearTimeout(browserRenderTimer);
                 browserRenderTimer = null;
@@ -1490,6 +1510,7 @@
             if (known && known.payload === payload && known.retain === retain) return;
 
             browserTopics.set(topic, { payload, retain });
+            browserDirty.add(topic);
             scheduleBrowserRender();
         }
 
@@ -1497,21 +1518,12 @@
             if (!browserActive || browserRenderTimer) return;
             browserRenderTimer = setTimeout(function() {
                 browserRenderTimer = null;
-                renderTopicBrowser();
+                flushBrowserUpdates();
             }, 250);
         }
 
-        function renderTopicBrowser() {
-            const tbody = document.getElementById('browserTableBody');
+        function updateBrowserNotice() {
             const notice = document.getElementById('browserNotice');
-            const addBtn = document.getElementById('browserAddBtn');
-            const search = document.getElementById('browserSearch').value.trim().toLowerCase();
-            const single = browserMode === 'single';
-            const registered = new Set(topics.map(t => t.name));
-
-            document.querySelectorAll('.browser-check-col').forEach(el => el.classList.toggle('d-none', single));
-            addBtn.classList.toggle('d-none', single);
-
             const messages = [];
             if (!mqttClient || !mqttClient.connected) {
                 messages.push('Not connected to the broker. Topics are listed once the connection is established.');
@@ -1524,73 +1536,134 @@
             }
             notice.textContent = messages.join(' ');
             notice.classList.toggle('d-none', messages.length === 0);
-
-            const names = Array.from(browserTopics.keys())
-                .filter(name => name.toLowerCase().includes(search))
-                .sort();
-
-            tbody.innerHTML = '';
-            names.forEach(name => {
-                const info = browserTopics.get(name);
-                const isRegistered = registered.has(name);
-
-                const row = document.createElement('tr');
-                row.className = isRegistered ? 'browser-row browser-row-registered' : 'browser-row';
-                row.dataset.topic = name;
-
-                let checkbox = null;
-                if (!single) {
-                    const checkCell = document.createElement('td');
-                    checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.className = 'form-check-input';
-                    checkbox.disabled = isRegistered;
-                    checkbox.checked = browserSelected.has(name);
-                    checkCell.appendChild(checkbox);
-                    row.appendChild(checkCell);
-                }
-
-                // Broker-supplied strings are inserted as text, never as HTML
-                const nameCell = document.createElement('td');
-                nameCell.textContent = isRegistered ? name + ' (added)' : name;
-                row.appendChild(nameCell);
-
-                const payloadCell = document.createElement('td');
-                payloadCell.className = 'browser-payload';
-                payloadCell.textContent = info.payload.length > 200 ? info.payload.slice(0, 200) + '...' : info.payload;
-                payloadCell.title = info.payload.slice(0, 500);
-                row.appendChild(payloadCell);
-
-                const retainCell = document.createElement('td');
-                retainCell.textContent = info.retain ? 'Yes' : '';
-                row.appendChild(retainCell);
-
-                if (!isRegistered) {
-                    row.addEventListener('click', function(e) {
-                        if (single) {
-                            pickBrowserTopic(name);
-                            return;
-                        }
-                        // A click on the checkbox has already toggled it
-                        if (e.target !== checkbox) {
-                            checkbox.checked = !checkbox.checked;
-                        }
-                        if (checkbox.checked) {
-                            browserSelected.add(name);
-                        } else {
-                            browserSelected.delete(name);
-                        }
-                        updateBrowserFooter(names.length);
-                    });
-                }
-
-                tbody.appendChild(row);
-            });
-
-            updateBrowserFooter(names.length);
         }
 
-        function updateBrowserFooter(shownCount) {
+        function createBrowserRow(name, isRegistered) {
+            const single = browserMode === 'single';
+            const row = document.createElement('tr');
+            row.className = isRegistered ? 'browser-row browser-row-registered' : 'browser-row';
+            row.dataset.topic = name;
+
+            let checkbox = null;
+            if (!single) {
+                const checkCell = document.createElement('td');
+                checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'form-check-input';
+                checkbox.disabled = isRegistered;
+                checkbox.checked = browserSelected.has(name);
+                checkCell.appendChild(checkbox);
+                row.appendChild(checkCell);
+            }
+
+            // Broker-supplied strings are inserted as text, never as HTML
+            const nameCell = document.createElement('td');
+            nameCell.textContent = isRegistered ? name + ' (added)' : name;
+            row.appendChild(nameCell);
+
+            const payloadCell = document.createElement('td');
+            payloadCell.className = 'browser-payload';
+            row.appendChild(payloadCell);
+
+            const retainCell = document.createElement('td');
+            retainCell.className = 'browser-retained';
+            row.appendChild(retainCell);
+
+            if (!isRegistered) {
+                row.addEventListener('click', function(e) {
+                    if (single) {
+                        pickBrowserTopic(name);
+                        return;
+                    }
+                    // A click on the checkbox has already toggled it
+                    if (e.target !== checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                    }
+                    if (checkbox.checked) {
+                        browserSelected.add(name);
+                    } else {
+                        browserSelected.delete(name);
+                    }
+                    updateBrowserFooter();
+                });
+            }
+
+            updateBrowserRow(row, browserTopics.get(name));
+            return row;
+        }
+
+        function updateBrowserRow(row, info) {
+            const payloadCell = row.querySelector('.browser-payload');
+            payloadCell.textContent = info.payload.length > 200 ? info.payload.slice(0, 200) + '...' : info.payload;
+            payloadCell.title = info.payload.slice(0, 500);
+            row.querySelector('.browser-retained').textContent = info.retain ? 'Yes' : '';
+        }
+
+        // Full rebuild: on open, search, and filter change
+        function renderTopicBrowser() {
+            const tbody = document.getElementById('browserTableBody');
+            const search = document.getElementById('browserSearch').value.trim().toLowerCase();
+            const single = browserMode === 'single';
+            const registered = new Set(topics.map(t => t.name));
+
+            document.querySelectorAll('.browser-check-col').forEach(el => el.classList.toggle('d-none', single));
+            document.getElementById('browserAddBtn').classList.toggle('d-none', single);
+            updateBrowserNotice();
+
+            browserRows.clear();
+            browserDirty.clear();
+            tbody.innerHTML = '';
+            Array.from(browserTopics.keys())
+                .filter(name => name.toLowerCase().includes(search))
+                .sort()
+                .forEach(name => {
+                    const row = createBrowserRow(name, registered.has(name));
+                    browserRows.set(name, row);
+                    tbody.appendChild(row);
+                });
+
+            updateBrowserFooter();
+        }
+
+        // Live updates patch rows in place: replacing a row while the pointer
+        // is on it would swallow the click
+        function flushBrowserUpdates() {
+            const newNames = Array.from(browserDirty).filter(name => !browserRows.has(name));
+            if (newNames.length > 100) {
+                // A burst of new topics (retained messages after subscribing)
+                renderTopicBrowser();
+                return;
+            }
+
+            const tbody = document.getElementById('browserTableBody');
+            const search = document.getElementById('browserSearch').value.trim().toLowerCase();
+            const registered = new Set(topics.map(t => t.name));
+            updateBrowserNotice();
+
+            browserDirty.forEach(name => {
+                const info = browserTopics.get(name);
+                if (!info) return;
+
+                const existing = browserRows.get(name);
+                if (existing) {
+                    updateBrowserRow(existing, info);
+                    return;
+                }
+                if (!name.toLowerCase().includes(search)) return;
+
+                const row = createBrowserRow(name, registered.has(name));
+                browserRows.set(name, row);
+                // Keep the list sorted by topic name
+                const next = Array.from(tbody.children).find(r => r.dataset.topic > name);
+                tbody.insertBefore(row, next || null);
+            });
+            browserDirty.clear();
+
+            updateBrowserFooter();
+        }
+
+        function updateBrowserFooter() {
+            const shownCount = document.getElementById('browserTableBody').children.length;
             let text = shownCount + ' of ' + browserTopics.size + ' topics';
             if (browserMode === 'multi') {
                 text += ', ' + browserSelected.size + ' selected';
@@ -1994,7 +2067,7 @@
                     </td>
                     <td>${topic.label}</td>
                     <td>${displayText}</td>
-                    <td>${topic.name}</td>
+                    <td>${escapeHtml(topic.name)}</td>
                     <td class="payload-cell" data-index="${index}">
                         <span class="payload-value">${topic.currentPayload || ''}</span>
                     </td>
