@@ -55,9 +55,11 @@ MQTT Panel を「監視・表示・手動パブリッシュ」のパネルに絞
 - JSON インポート（`importData`）
 - リモート設定の受信（`handleTopicsConfigMessage`）
 
-旧フィールドを含む設定はエラーにしない。リモート設定の比較は正規化後の値で行うため、
-旧フィールドだけが違う設定を受信した場合は「変更あり」として取り込み、
-正規化済みの設定を保持する。
+同じ関数で、機能廃止により不要になった実行時フィールド（`currentValue`、`lastRetain`、
+`timerRemaining`）も取り除き、`payloadValues` が配列でない場合は空配列にする。
+
+旧フィールドを含む設定はエラーにしない。リモート設定の比較は正規化後の値で行う。
+旧フィールドだけが違う設定を受信した場合は「変更なし」として何もしない。
 
 ## 2. 自動再接続
 
@@ -73,7 +75,9 @@ mqtt.js 内蔵の再接続を使い、クライアントを1つだけ保持す�
 ### 新しい挙動
 
 - 接続オプション: `reconnectPeriod: 5000`、`connectTimeout: 10000`、`keepalive: 30`、
-  `clean: true`。5秒間隔で無期限に再試行する。
+  `clean: true`、`reconnectOnConnackError: true`、`resubscribe: false`。
+  5秒間隔で無期限に再試行する。ブローカーが接続を拒否した場合（認証エラーなど）も再試行を続ける。
+  購読は `connect` イベントで明示的にやり直すため、mqtt.js の自動再購読は使わない。
 - `error` / `close` / `offline` ではクライアントを破棄しない。状態表示だけを更新する。
 - `connectMQTT()` は、既存クライアントがあれば `end(true)` で終了してから新しく作る。
   イベントハンドラは、自分が現在のクライアントである場合だけ処理する（古いクライアントの
@@ -83,7 +87,8 @@ mqtt.js 内蔵の再接続を使い、クライアントを1つだけ保持す�
 - 手動 Disconnect は `end()` して再接続を止める。Connect を押すかページを再読み込みするまで
   再接続しない。
 - ブラウザの `online` イベントと、タブが再表示されたとき（`visibilitychange`）に、
-  未接続かつ手動切断でなければ `mqttClient.reconnect()` を呼んで待ち時間なしで再接続を試みる。
+  再試行の待ち時間中であれば `mqttClient.reconnect()` を呼んで待たずに再接続を試みる。
+  接続試行の最中には呼ばない（mqtt.js が接続を二重に作るため）。
 - 30秒ポーリング（`startReconnectCheck` / `stopReconnectCheck` / `reconnectInterval`）は削除する。
 - 起動時の自動接続は従来どおり、ホスト設定があれば行う。
 
@@ -139,7 +144,9 @@ MQTT にはトピック一覧を返す API がないため、ワイルドカー�
   `payloadValues` は空、`showInTileView` は true。追加後に保存、購読、設定発行、再描画を行う。
 - 1件選択（Add/Edit Topic モーダルの Topic 入力欄横の「Browse」ボタンから開いた場合）:
   行をクリックするとトピック名を入力欄に反映してブラウザを閉じる。チェックボックスと
-  「Add selected」は表示しない。
+  「Add selected」は表示しない。Label が空ならトピック末尾のセグメントを入れる。
+  Bootstrap はモーダルの重ね表示に対応していないため、ブラウザを開いている間は Topic モーダルを
+  隠し、ブラウザを閉じたときに入力内容を保ったまま再表示する。
 
 ## 4. ドキュメント
 
