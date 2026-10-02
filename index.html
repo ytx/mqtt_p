@@ -26,20 +26,6 @@
         .status-disconnected {
             background-color: #dc3545;
         }
-        .function-toggle {
-            cursor: pointer;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-        }
-        .function-active {
-            background-color: #28a745;
-            color: white;
-        }
-        .function-inactive {
-            background-color: #6c757d;
-            color: white;
-        }
         .context-menu {
             position: absolute;
             background: white;
@@ -665,21 +651,6 @@
             background-color: #1a1a1a;
         }
 
-        [data-theme="dark"] .function-toggle {
-            background-color: #3a3a3a !important;
-            color: #e0e0e0 !important;
-        }
-
-        [data-theme="dark"] .function-active {
-            background-color: #28a745 !important;
-            color: white !important;
-        }
-
-        [data-theme="dark"] .function-inactive {
-            background-color: #6c757d !important;
-            color: white !important;
-        }
-
         /* Dark mode payload cell hover effect disabled */
         /* [data-theme="dark"] .payload-cell:hover {
             background-color: rgba(0, 123, 255, 0.2) !important;
@@ -754,7 +725,6 @@
                             <th>Display</th>
                             <th>Topic</th>
                             <th>Payload</th>
-                            <th>Function</th>
                         </tr>
                     </thead>
                     <tbody id="topicTableBody">
@@ -967,11 +937,10 @@
                             <table class="table table-sm" id="payloadValuesTable">
                                 <thead>
                                     <tr>
-                                        <th style="width: 25%">Payload Value</th>
-                                        <th style="width: 25%">Display Text</th>
+                                        <th style="width: 35%">Payload Value</th>
+                                        <th style="width: 35%">Display Text</th>
                                         <th style="width: 60px; text-align: center">BG</th>
                                         <th style="width: 60px; text-align: center">Text</th>
-                                        <th style="width: 20%">Convert Value</th>
                                         <th style="width: 40px"></th>
                                     </tr>
                                 </thead>
@@ -982,243 +951,6 @@
                             <button type="button" class="btn btn-sm btn-outline-primary" id="addPayloadBtn">
                                 <i class="bi bi-plus"></i> Add Payload Value
                             </button>
-                        </div>
-
-                        <!-- Function Settings Section -->
-                        <div class="mb-4">
-                            <h6>Function Settings</h6>
-                            <div class="mb-3">
-                                <select class="form-select" id="functionType">
-                                    <option value="">No Function</option>
-                                    <option value="transfer">Transfer</option>
-                                    <option value="convert">Convert</option>
-                                    <option value="cycle">Cycle</option>
-                                    <option value="schedule">Schedule</option>
-                                    <option value="timer">Timer</option>
-                                </select>
-                            </div>
-
-                            <!-- Transfer Settings -->
-                            <div id="transferSettings" class="d-none">
-                                <div class="mb-3">
-                                    <label for="transferTopic" class="form-label">Target Topic</label>
-                                    <input type="text" class="form-control" id="transferTopic">
-                                </div>
-                            </div>
-
-                            <!-- Convert Settings -->
-                            <div id="convertSettings" class="d-none">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="convertTopic" class="form-label">Target Topic</label>
-                                        <input type="text" class="form-control" id="convertTopic">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="convertDefault" class="form-label">Default Value</label>
-                                        <input type="text" class="form-control" id="convertDefault">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Cycle Settings -->
-                            <div id="cycleSettings" class="d-none">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="cycleNextPayload" class="form-label">Next Payload</label>
-                                        <input type="text" class="form-control" id="cycleNextPayload">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="cyclePrevPayload" class="form-label">Previous Payload (Optional)</label>
-                                        <input type="text" class="form-control" id="cyclePrevPayload">
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Schedule Settings -->
-                            <div id="scheduleSettings" class="d-none">
-                                <!-- Schedule 1 -->
-                                <div class="border p-3 mb-3">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h6 class="mb-0">Schedule 1</h6>
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="schedule1Enabled" checked>
-                                            <label class="form-check-label" for="schedule1Enabled">Enabled</label>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <label class="form-label mb-0">Days of Week</label>
-                                            <div class="btn-group btn-group-sm" role="group">
-                                                <button type="button" class="btn btn-outline-secondary" onclick="selectAllDays('schedule1')">All</button>
-                                                <button type="button" class="btn btn-outline-secondary" onclick="deselectAllDays('schedule1')">None</button>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex gap-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule1-day" type="checkbox" value="0" id="schedule1Sun">
-                                                <label class="form-check-label" for="schedule1Sun">Sun</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule1-day" type="checkbox" value="1" id="schedule1Mon">
-                                                <label class="form-check-label" for="schedule1Mon">Mon</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule1-day" type="checkbox" value="2" id="schedule1Tue">
-                                                <label class="form-check-label" for="schedule1Tue">Tue</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule1-day" type="checkbox" value="3" id="schedule1Wed">
-                                                <label class="form-check-label" for="schedule1Wed">Wed</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule1-day" type="checkbox" value="4" id="schedule1Thu">
-                                                <label class="form-check-label" for="schedule1Thu">Thu</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule1-day" type="checkbox" value="5" id="schedule1Fri">
-                                                <label class="form-check-label" for="schedule1Fri">Fri</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule1-day" type="checkbox" value="6" id="schedule1Sat">
-                                                <label class="form-check-label" for="schedule1Sat">Sat</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label for="schedule1Time" class="form-label">Time</label>
-                                            <input type="time" class="form-control" id="schedule1Time">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="schedule1Payload" class="form-label">Payload</label>
-                                            <input type="text" class="form-control" id="schedule1Payload">
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Schedule 2 -->
-                                <div class="border p-3">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h6 class="mb-0">Schedule 2</h6>
-                                        <div class="form-check form-switch">
-                                            <input class="form-check-input" type="checkbox" id="schedule2Enabled" checked>
-                                            <label class="form-check-label" for="schedule2Enabled">Enabled</label>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <label class="form-label mb-0">Days of Week</label>
-                                            <div class="btn-group btn-group-sm" role="group">
-                                                <button type="button" class="btn btn-outline-secondary" onclick="selectAllDays('schedule2')">All</button>
-                                                <button type="button" class="btn btn-outline-secondary" onclick="deselectAllDays('schedule2')">None</button>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex gap-2">
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule2-day" type="checkbox" value="0" id="schedule2Sun">
-                                                <label class="form-check-label" for="schedule2Sun">Sun</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule2-day" type="checkbox" value="1" id="schedule2Mon">
-                                                <label class="form-check-label" for="schedule2Mon">Mon</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule2-day" type="checkbox" value="2" id="schedule2Tue">
-                                                <label class="form-check-label" for="schedule2Tue">Tue</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule2-day" type="checkbox" value="3" id="schedule2Wed">
-                                                <label class="form-check-label" for="schedule2Wed">Wed</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule2-day" type="checkbox" value="4" id="schedule2Thu">
-                                                <label class="form-check-label" for="schedule2Thu">Thu</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule2-day" type="checkbox" value="5" id="schedule2Fri">
-                                                <label class="form-check-label" for="schedule2Fri">Fri</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input schedule2-day" type="checkbox" value="6" id="schedule2Sat">
-                                                <label class="form-check-label" for="schedule2Sat">Sat</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-md-6">
-                                            <label for="schedule2Time" class="form-label">Time</label>
-                                            <input type="time" class="form-control" id="schedule2Time">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label for="schedule2Payload" class="form-label">Payload</label>
-                                            <input type="text" class="form-control" id="schedule2Payload">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Timer Settings -->
-                            <div id="timerSettings" class="d-none">
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label for="timerInterval" class="form-label">Publish Interval (seconds)</label>
-                                        <input type="number" class="form-control" id="timerInterval" value="1" min="1">
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Countdown Color</label>
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <label class="form-label small">Background</label>
-                                                <div class="d-flex align-items-center">
-                                                    <div style="width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" id="timerCountdownBgPreview"></div>
-                                                    <input type="hidden" id="timerCountdownBg" value="#007bff">
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <label class="form-label small">Text</label>
-                                                <div class="d-flex align-items-center">
-                                                    <div style="width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" id="timerCountdownFgPreview"></div>
-                                                    <input type="hidden" id="timerCountdownFg" value="#ffffff">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Overtime Color</label>
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <label class="form-label small">Background</label>
-                                                <div class="d-flex align-items-center">
-                                                    <div style="width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" id="timerOvertimeBgPreview"></div>
-                                                    <input type="hidden" id="timerOvertimeBg" value="#ff0000">
-                                                </div>
-                                            </div>
-                                            <div class="col-6">
-                                                <label class="form-label small">Text</label>
-                                                <div class="d-flex align-items-center">
-                                                    <div style="width: 40px; height: 40px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;" id="timerOvertimeFgPreview"></div>
-                                                    <input type="hidden" id="timerOvertimeFg" value="#ffffff">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="timerSound" class="form-label">Sound when timer reaches 0</label>
-                                    <div class="d-flex gap-2">
-                                        <select class="form-select" id="timerSound">
-                                            <option value="">No Sound</option>
-                                            <option value="beep">Beep</option>
-                                            <option value="bell">Bell</option>
-                                            <option value="chime">Chime</option>
-                                            <option value="custom">Custom (audio/sound2-1.wav)</option>
-                                        </select>
-                                        <button type="button" class="btn btn-outline-secondary" id="testSoundBtn">Test</button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </form>
                 </div>
@@ -1238,7 +970,6 @@
         let topics = [];
         let currentTopicIndex = -1;
         let selectedRow = null;
-        let timerIntervals = {}; // Store timer interval IDs by topic name
         let reconnectInterval = null; // Store reconnect check interval ID
         let isManualDisconnect = false; // Track if disconnect was manual
         let ignoreNextTopicsMessage = false; // Ignore echo of own publish
@@ -1303,7 +1034,6 @@
             document.getElementById('addPayloadBtn').addEventListener('click', function() {
                 addPayloadEntry();
             });
-            document.getElementById('functionType').addEventListener('change', toggleFunctionSettings);
 
             // Export/Import
             document.getElementById('exportBtn').addEventListener('click', exportData);
@@ -1332,23 +1062,6 @@
                 currentTopicIndex = -1;
                 showTopicModal();
             });
-
-            // Timer color pickers
-            document.getElementById('timerCountdownBgPreview').addEventListener('click', function() {
-                showTimerColorPalette(this, 'timerCountdownBg');
-            });
-            document.getElementById('timerCountdownFgPreview').addEventListener('click', function() {
-                showTimerColorPalette(this, 'timerCountdownFg');
-            });
-            document.getElementById('timerOvertimeBgPreview').addEventListener('click', function() {
-                showTimerColorPalette(this, 'timerOvertimeBg');
-            });
-            document.getElementById('timerOvertimeFgPreview').addEventListener('click', function() {
-                showTimerColorPalette(this, 'timerOvertimeFg');
-            });
-
-            // Test sound button
-            document.getElementById('testSoundBtn').addEventListener('click', testTimerSound);
 
             // Window resize handler for tile font size
             window.addEventListener('resize', function() {
@@ -1421,7 +1134,6 @@
                 subscribeToTopics();
                 subscribeTopicsConfig();
                 publishTopicsConfig();
-                startScheduleChecker();
                 startReconnectCheck();
             });
 
@@ -1521,8 +1233,6 @@
             return topicsArray.map(t => {
                 const copy = Object.assign({}, t);
                 delete copy.currentPayload;
-                delete copy.currentValue;
-                delete copy.lastRetain;
                 delete copy.rawPayload;
                 delete copy.jsonDisplayText;
                 return copy;
@@ -1589,24 +1299,13 @@
             if (incomingJson === currentJson) return;
 
             // Apply: strip runtime fields from incoming, preserve runtime state where topic matches
-            topics = data.map(incoming => {
-                delete incoming.currentPayload;
-                delete incoming.currentValue;
-                delete incoming.lastRetain;
-                delete incoming.rawPayload;
-                delete incoming.jsonDisplayText;
-                return incoming;
-            });
+            topics = stripRuntimeFields(data);
 
             // Save without publishing back (avoid infinite loop)
             localStorage.setItem('mqttPanelTopics', JSON.stringify(topics));
             lastPublishedTopicsJson = JSON.stringify(stripRuntimeFields(topics), null, 2);
 
-            if (currentView === 'tile') {
-                renderTileView();
-            } else {
-                renderTopics();
-            }
+            renderCurrentView();
 
             mqttClient.publish(statusTopic, 'success', { retain: true });
             console.log('Topics config updated from MQTT');
@@ -1635,9 +1334,6 @@
             const topicConfig = topics.find(t => t.name === topic);
             if (!topicConfig) return;
 
-            // Store retain flag for later use
-            topicConfig.lastRetain = retain;
-
             // Store original payload
             topicConfig.rawPayload = payload;
 
@@ -1657,208 +1353,22 @@
             }
             topicConfig.jsonDisplayText = jsonDisplayText;
 
-            // Always update display regardless of function enabled status
             updateTopicDisplay(topic, effectivePayload);
-
-            // Execute function only if enabled
-            if (topicConfig.functionEnabled && topicConfig.functionType) {
-                switch (topicConfig.functionType) {
-                    case 'transfer':
-                        handleTransfer(topicConfig, payload);
-                        break;
-                    case 'convert':
-                        handleConvert(topicConfig, effectivePayload);
-                        break;
-                    case 'cycle':
-                        handleCycle(topicConfig, effectivePayload);
-                        break;
-                    case 'timer':
-                        handleTimer(topicConfig, effectivePayload);
-                        break;
-                }
-            }
-        }
-
-        function handleTransfer(topicConfig, payload) {
-            if (topicConfig.transferTopic && mqttClient) {
-                const options = { retain: topicConfig.lastRetain || false };
-                mqttClient.publish(topicConfig.transferTopic, payload, options);
-            }
-        }
-
-        function handleConvert(topicConfig, payload) {
-            if (!topicConfig.convertTopic || !mqttClient) return;
-
-            const payloadValue = topicConfig.payloadValues.find(pv => pv.value === payload);
-            const convertValue = payloadValue ? payloadValue.convertValue : topicConfig.convertDefault;
-
-            if (convertValue !== undefined && convertValue !== null) {
-                const options = { retain: topicConfig.lastRetain || false };
-                mqttClient.publish(topicConfig.convertTopic, convertValue, options);
-            }
-        }
-
-        function handleCycle(topicConfig, payload) {
-            if (!mqttClient) return;
-
-            const isNext = payload === topicConfig.cycleNextPayload;
-            const isPrev = payload === topicConfig.cyclePrevPayload;
-
-            if (!isNext && !isPrev) return;
-
-            const values = topicConfig.payloadValues.map(pv => pv.value);
-            if (values.length === 0) return;
-
-            let currentIndex = values.indexOf(topicConfig.currentValue);
-            if (currentIndex === -1) currentIndex = -1;
-
-            let nextIndex;
-            if (isNext) {
-                nextIndex = (currentIndex + 1) % values.length;
-            } else {
-                nextIndex = currentIndex <= 0 ? values.length - 1 : currentIndex - 1;
-            }
-
-            const nextValue = values[nextIndex];
-            topicConfig.currentValue = nextValue;
-
-            mqttClient.publish(topicConfig.name, nextValue, { retain: true });
-            saveTopics();
-        }
-
-        function handleTimer(topicConfig, payload) {
-            if (!mqttClient) return;
-
-            // Check if payload is a number (start countdown)
-            const seconds = parseInt(payload);
-            if (!isNaN(seconds)) {
-                // Check if timer is already running with this value
-                if (timerIntervals[topicConfig.name] && topicConfig.timerRemaining === seconds) {
-                    // Timer already running, don't restart
-                    return;
-                }
-
-                // Clear existing timer for this topic
-                if (timerIntervals[topicConfig.name]) {
-                    clearInterval(timerIntervals[topicConfig.name]);
-                    delete timerIntervals[topicConfig.name];
-                }
-
-                // Store initial timer value
-                topicConfig.timerRemaining = seconds;
-
-                // Start countdown if seconds > 0
-                if (seconds > 0) {
-                    const interval = setInterval(() => {
-                        topicConfig.timerRemaining--;
-
-                        // Publish new value
-                        mqttClient.publish(topicConfig.name, String(topicConfig.timerRemaining));
-
-                        // Play sound when reaching 0
-                        if (topicConfig.timerRemaining === 0 && topicConfig.timerSound) {
-                            playTimerSound(topicConfig.timerSound);
-                        }
-
-                        // Continue into negative (overtime) until stopped
-                        if (topicConfig.timerRemaining < -999) {
-                            // Safety limit: stop at -999 seconds
-                            clearInterval(timerIntervals[topicConfig.name]);
-                            delete timerIntervals[topicConfig.name];
-                        }
-                    }, (topicConfig.timerInterval || 1) * 1000);
-
-                    timerIntervals[topicConfig.name] = interval;
-                }
-            } else {
-                // Non-numeric payload: stop timer
-                if (timerIntervals[topicConfig.name]) {
-                    clearInterval(timerIntervals[topicConfig.name]);
-                    delete timerIntervals[topicConfig.name];
-                }
-                topicConfig.timerRemaining = null;
-            }
-        }
-
-        function playTimerSound(sound) {
-            if (sound === 'custom') {
-                // Play custom audio file
-                const audio = new Audio('audio/sound2-1.wav');
-                audio.play().catch(err => console.error('Error playing audio:', err));
-            } else {
-                // Play synthesized sound
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                switch (sound) {
-                    case 'beep':
-                        oscillator.frequency.value = 800;
-                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                        oscillator.start();
-                        oscillator.stop(audioContext.currentTime + 0.2);
-                        break;
-                    case 'bell':
-                        oscillator.frequency.value = 1000;
-                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-                        oscillator.start();
-                        oscillator.stop(audioContext.currentTime + 0.5);
-                        break;
-                    case 'chime':
-                        oscillator.frequency.value = 1200;
-                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                        oscillator.start();
-                        oscillator.stop(audioContext.currentTime + 0.15);
-                        setTimeout(() => {
-                            const osc2 = audioContext.createOscillator();
-                            const gain2 = audioContext.createGain();
-                            osc2.connect(gain2);
-                            gain2.connect(audioContext.destination);
-                            osc2.frequency.value = 900;
-                            gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
-                            osc2.start();
-                            osc2.stop(audioContext.currentTime + 0.15);
-                        }, 150);
-                        break;
-                }
-            }
-        }
-
-        function formatTimerDisplay(seconds) {
-            const absSeconds = Math.abs(seconds);
-            const hours = Math.floor(absSeconds / 3600);
-            const minutes = Math.floor((absSeconds % 3600) / 60);
-            const secs = absSeconds % 60;
-
-            const sign = seconds < 0 ? '-' : '';
-
-            if (hours > 0) {
-                return `${sign}${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-            } else {
-                return `${sign}${minutes}:${String(secs).padStart(2, '0')}`;
-            }
         }
 
         // Topic management
         function showTopicModal(topicData = null) {
-            const modal = new bootstrap.Modal(document.getElementById('topicModal'));
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('topicModal'));
 
             // Reset form
             document.getElementById('topicForm').reset();
             document.getElementById('payloadValues').innerHTML = '';
-            document.getElementById('functionType').value = '';
-            toggleFunctionSettings();
 
             if (topicData) {
                 // Edit mode
                 document.getElementById('topicModalTitle').textContent = 'Edit Topic';
                 document.getElementById('topicLabel').value = topicData.label || '';
                 document.getElementById('topicName').value = topicData.name || '';
-                document.getElementById('functionType').value = topicData.functionType || '';
                 document.getElementById('showInTileView').checked = topicData.showInTileView !== false;
 
                 // Load JSON path settings
@@ -1866,67 +1376,9 @@
                 document.getElementById('jsonPathDisplay').value = topicData.jsonPathDisplay || '';
 
                 // Load payload values
-                if (topicData.payloadValues) {
-                    topicData.payloadValues.forEach(pv => {
-                        addPayloadEntry(pv);
-                    });
-                }
-
-                // Load function settings
-                if (topicData.functionType) {
-                    toggleFunctionSettings();
-                    switch (topicData.functionType) {
-                        case 'transfer':
-                            document.getElementById('transferTopic').value = topicData.transferTopic || '';
-                            break;
-                        case 'convert':
-                            document.getElementById('convertTopic').value = topicData.convertTopic || '';
-                            document.getElementById('convertDefault').value = topicData.convertDefault || '';
-                            break;
-                        case 'cycle':
-                            document.getElementById('cycleNextPayload').value = topicData.cycleNextPayload || '';
-                            document.getElementById('cyclePrevPayload').value = topicData.cyclePrevPayload || '';
-                            break;
-                        case 'schedule':
-                            if (topicData.schedules && topicData.schedules.length > 0) {
-                                // Load Schedule 1
-                                const schedule1 = topicData.schedules[0];
-                                schedule1.days.forEach(day => {
-                                    const checkbox = document.querySelector(`.schedule1-day[value="${day}"]`);
-                                    if (checkbox) checkbox.checked = true;
-                                });
-                                document.getElementById('schedule1Time').value = schedule1.time || '';
-                                document.getElementById('schedule1Payload').value = schedule1.payload || '';
-                                document.getElementById('schedule1Enabled').checked = schedule1.enabled !== false;
-
-                                // Load Schedule 2 if exists
-                                if (topicData.schedules.length > 1) {
-                                    const schedule2 = topicData.schedules[1];
-                                    schedule2.days.forEach(day => {
-                                        const checkbox = document.querySelector(`.schedule2-day[value="${day}"]`);
-                                        if (checkbox) checkbox.checked = true;
-                                    });
-                                    document.getElementById('schedule2Time').value = schedule2.time || '';
-                                    document.getElementById('schedule2Payload').value = schedule2.payload || '';
-                                    document.getElementById('schedule2Enabled').checked = schedule2.enabled !== false;
-                                }
-                            }
-                            break;
-                        case 'timer':
-                            document.getElementById('timerInterval').value = topicData.timerInterval || 1;
-                            document.getElementById('timerCountdownBg').value = topicData.timerCountdownBg || '#007bff';
-                            document.getElementById('timerCountdownFg').value = topicData.timerCountdownFg || '#ffffff';
-                            document.getElementById('timerOvertimeBg').value = topicData.timerOvertimeBg || '#ff0000';
-                            document.getElementById('timerOvertimeFg').value = topicData.timerOvertimeFg || '#ffffff';
-                            document.getElementById('timerSound').value = topicData.timerSound || '';
-                            // Update color previews
-                            document.getElementById('timerCountdownBgPreview').style.backgroundColor = topicData.timerCountdownBg || '#007bff';
-                            document.getElementById('timerCountdownFgPreview').style.backgroundColor = topicData.timerCountdownFg || '#ffffff';
-                            document.getElementById('timerOvertimeBgPreview').style.backgroundColor = topicData.timerOvertimeBg || '#ff0000';
-                            document.getElementById('timerOvertimeFgPreview').style.backgroundColor = topicData.timerOvertimeFg || '#ffffff';
-                            break;
-                    }
-                }
+                (topicData.payloadValues || []).forEach(pv => {
+                    addPayloadEntry(pv);
+                });
             } else {
                 // Add mode
                 document.getElementById('topicModalTitle').textContent = 'New Topic';
@@ -1978,9 +1430,6 @@
                     <input type="hidden" class="payload-text-color" value="${txtColor}">
                 </td>
                 <td>
-                    <input type="text" class="form-control form-control-sm convert-value" value="${data?.convertValue || ''}">
-                </td>
-                <td>
                     <button type="button" class="btn btn-outline-danger btn-sm remove-payload">
                         <i class="bi bi-trash"></i>
                     </button>
@@ -2002,33 +1451,6 @@
             container.appendChild(entry);
         }
 
-        function toggleFunctionSettings() {
-            const functionType = document.getElementById('functionType').value;
-
-            document.getElementById('transferSettings').classList.add('d-none');
-            document.getElementById('convertSettings').classList.add('d-none');
-            document.getElementById('cycleSettings').classList.add('d-none');
-            document.getElementById('scheduleSettings').classList.add('d-none');
-            document.getElementById('timerSettings').classList.add('d-none');
-
-            if (functionType) {
-                document.getElementById(`${functionType}Settings`).classList.remove('d-none');
-
-                // Update timer color previews when switching to timer mode
-                if (functionType === 'timer') {
-                    const countdownBg = document.getElementById('timerCountdownBg').value;
-                    const countdownFg = document.getElementById('timerCountdownFg').value;
-                    const overtimeBg = document.getElementById('timerOvertimeBg').value;
-                    const overtimeFg = document.getElementById('timerOvertimeFg').value;
-
-                    document.getElementById('timerCountdownBgPreview').style.backgroundColor = countdownBg;
-                    document.getElementById('timerCountdownFgPreview').style.backgroundColor = countdownFg;
-                    document.getElementById('timerOvertimeBgPreview').style.backgroundColor = overtimeBg;
-                    document.getElementById('timerOvertimeFgPreview').style.backgroundColor = overtimeFg;
-                }
-            }
-        }
-
         function saveTopic() {
             const form = document.getElementById('topicForm');
             if (!form.checkValidity()) {
@@ -2039,13 +1461,10 @@
             const topicData = {
                 label: document.getElementById('topicLabel').value,
                 name: document.getElementById('topicName').value,
-                functionType: document.getElementById('functionType').value,
-                functionEnabled: true,
                 showInTileView: document.getElementById('showInTileView').checked,
                 jsonPathValue: document.getElementById('jsonPathValue').value.trim() || null,
                 jsonPathDisplay: document.getElementById('jsonPathDisplay').value.trim() || null,
                 payloadValues: [],
-                currentValue: null,
                 currentPayload: null
             };
 
@@ -2056,70 +1475,16 @@
                 const display = entry.querySelector('.payload-display').value;
                 const backgroundColor = entry.querySelector('.payload-background-color').value;
                 const textColor = entry.querySelector('.payload-text-color').value;
-                const convertValue = entry.querySelector('.convert-value').value;
 
                 if (value) {
                     topicData.payloadValues.push({
                         value,
                         display: display || value,
                         backgroundColor,
-                        textColor,
-                        convertValue
+                        textColor
                     });
                 }
             });
-
-            // Function-specific settings
-            switch (topicData.functionType) {
-                case 'transfer':
-                    topicData.transferTopic = document.getElementById('transferTopic').value;
-                    break;
-                case 'convert':
-                    topicData.convertTopic = document.getElementById('convertTopic').value;
-                    topicData.convertDefault = document.getElementById('convertDefault').value;
-                    break;
-                case 'cycle':
-                    topicData.cycleNextPayload = document.getElementById('cycleNextPayload').value;
-                    topicData.cyclePrevPayload = document.getElementById('cyclePrevPayload').value;
-                    break;
-                case 'schedule':
-                    topicData.schedules = [];
-                    // Collect Schedule 1
-                    const schedule1Days = Array.from(document.querySelectorAll('.schedule1-day:checked')).map(cb => parseInt(cb.value));
-                    const schedule1Time = document.getElementById('schedule1Time').value;
-                    const schedule1Payload = document.getElementById('schedule1Payload').value;
-                    const schedule1Enabled = document.getElementById('schedule1Enabled').checked;
-                    if (schedule1Days.length > 0 && schedule1Time && schedule1Payload) {
-                        topicData.schedules.push({
-                            days: schedule1Days,
-                            time: schedule1Time,
-                            payload: schedule1Payload,
-                            enabled: schedule1Enabled
-                        });
-                    }
-                    // Collect Schedule 2
-                    const schedule2Days = Array.from(document.querySelectorAll('.schedule2-day:checked')).map(cb => parseInt(cb.value));
-                    const schedule2Time = document.getElementById('schedule2Time').value;
-                    const schedule2Payload = document.getElementById('schedule2Payload').value;
-                    const schedule2Enabled = document.getElementById('schedule2Enabled').checked;
-                    if (schedule2Days.length > 0 && schedule2Time && schedule2Payload) {
-                        topicData.schedules.push({
-                            days: schedule2Days,
-                            time: schedule2Time,
-                            payload: schedule2Payload,
-                            enabled: schedule2Enabled
-                        });
-                    }
-                    break;
-                case 'timer':
-                    topicData.timerInterval = parseInt(document.getElementById('timerInterval').value) || 1;
-                    topicData.timerCountdownBg = document.getElementById('timerCountdownBg').value;
-                    topicData.timerCountdownFg = document.getElementById('timerCountdownFg').value;
-                    topicData.timerOvertimeBg = document.getElementById('timerOvertimeBg').value;
-                    topicData.timerOvertimeFg = document.getElementById('timerOvertimeFg').value;
-                    topicData.timerSound = document.getElementById('timerSound').value;
-                    break;
-            }
 
             if (currentTopicIndex >= 0) {
                 topics[currentTopicIndex] = topicData;
@@ -2129,7 +1494,7 @@
 
             saveTopics();
             publishTopicsConfig();
-            renderTopics();
+            renderCurrentView();
 
             if (mqttClient && mqttClient.connected) {
                 mqttClient.subscribe(topicData.name);
@@ -2139,6 +1504,35 @@
         }
 
         // UI rendering
+        function resolveTopicDisplay(topic) {
+            const payloadValues = topic.payloadValues || [];
+            const currentPayloadValue = payloadValues.find(pv => pv.value === topic.currentPayload);
+            // Fallback to wildcard (*) if no exact match
+            const effectivePayloadValue = currentPayloadValue || payloadValues.find(pv => pv.value === '*');
+
+            // Use jsonDisplayText if available, otherwise use payload value display or current payload
+            let displayText;
+            if (topic.jsonDisplayText) {
+                displayText = topic.jsonDisplayText;
+            } else {
+                displayText = currentPayloadValue ? currentPayloadValue.display : (topic.currentPayload || '');
+            }
+
+            return {
+                displayText,
+                backgroundColor: effectivePayloadValue ? effectivePayloadValue.backgroundColor : '#ffffff',
+                textColor: effectivePayloadValue ? effectivePayloadValue.textColor : '#000000'
+            };
+        }
+
+        function renderCurrentView() {
+            if (currentView === 'tile') {
+                renderTileView();
+            } else {
+                renderTopics();
+            }
+        }
+
         function renderTopics() {
             const tbody = document.getElementById('topicTableBody');
             tbody.innerHTML = '';
@@ -2148,56 +1542,7 @@
                 row.className = 'topic-row';
                 row.dataset.index = index;
 
-                let displayText, backgroundColor, textColor;
-
-                // Special handling for timer function
-                if (topic.functionType === 'timer') {
-                    // Check if there's a matching payload value first (for both numeric and non-numeric)
-                    const currentPayloadValue = topic.payloadValues && topic.payloadValues.find(pv => pv.value === topic.currentPayload);
-
-                    if (currentPayloadValue) {
-                        // Use payload value settings if available
-                        displayText = currentPayloadValue.display;
-                        backgroundColor = currentPayloadValue.backgroundColor;
-                        textColor = currentPayloadValue.textColor;
-                    } else {
-                        const seconds = parseInt(topic.currentPayload);
-                        if (!isNaN(seconds)) {
-                            // Format time display
-                            displayText = formatTimerDisplay(seconds);
-
-                            // Use timer colors
-                            if (seconds >= 0) {
-                                backgroundColor = topic.timerCountdownBg || '#007bff';
-                                textColor = topic.timerCountdownFg || '#ffffff';
-                            } else {
-                                backgroundColor = topic.timerOvertimeBg || '#ff0000';
-                                textColor = topic.timerOvertimeFg || '#ffffff';
-                            }
-                        } else {
-                            displayText = topic.currentPayload || '';
-                            backgroundColor = '#ffffff';
-                            textColor = '#000000';
-                        }
-                    }
-                } else {
-                    const currentPayloadValue = topic.payloadValues.find(pv => pv.value === topic.currentPayload);
-                    // Fallback to wildcard (*) if no exact match
-                    const wildcardValue = !currentPayloadValue ? topic.payloadValues.find(pv => pv.value === '*') : null;
-                    const effectivePayloadValue = currentPayloadValue || wildcardValue;
-
-                    // Use jsonDisplayText if available, otherwise use payload value display or current payload
-                    if (topic.jsonDisplayText) {
-                        displayText = topic.jsonDisplayText;
-                    } else {
-                        displayText = currentPayloadValue ? currentPayloadValue.display : (topic.currentPayload || '');
-                    }
-                    backgroundColor = effectivePayloadValue ? effectivePayloadValue.backgroundColor : '#ffffff';
-                    textColor = effectivePayloadValue ? effectivePayloadValue.textColor : '#000000';
-                }
-
-                const functionText = topic.functionType ?
-                    `${getFunctionDisplayName(topic.functionType)} (${topic.functionEnabled ? 'ON' : 'OFF'})` : '';
+                const { displayText, backgroundColor, textColor } = resolveTopicDisplay(topic);
 
                 row.innerHTML = `
                     <td class="drag-handle" title="Drag to reorder">
@@ -2208,11 +1553,6 @@
                     <td>${topic.name}</td>
                     <td class="payload-cell" data-index="${index}">
                         <span class="payload-value">${topic.currentPayload || ''}</span>
-                    </td>
-                    <td>
-                        ${topic.functionType ? `<span class="function-toggle ${topic.functionEnabled ? 'function-active' : 'function-inactive'}" data-index="${index}">
-                            ${getFunctionDisplayName(topic.functionType)}
-                        </span>` : ''}
                     </td>
                 `;
 
@@ -2281,27 +1621,8 @@
                     });
                 }
 
-                const functionToggle = row.querySelector('.function-toggle');
-                if (functionToggle) {
-                    functionToggle.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        toggleFunction(index);
-                    });
-                }
-
                 tbody.appendChild(row);
             });
-        }
-
-        function getFunctionDisplayName(functionType) {
-            switch (functionType) {
-                case 'transfer': return 'Transfer';
-                case 'convert': return 'Convert';
-                case 'cycle': return 'Cycle';
-                case 'schedule': return 'Schedule';
-                case 'timer': return 'Timer';
-                default: return '';
-            }
         }
 
         function updateTopicDisplay(topicName, payload) {
@@ -2310,23 +1631,7 @@
                 topic.currentPayload = payload;
                 saveTopics();
 
-                if (currentView === 'tile') {
-                    renderTileView();
-                } else {
-                    renderTopics();
-                }
-            }
-        }
-
-        function toggleFunction(index) {
-            topics[index].functionEnabled = !topics[index].functionEnabled;
-            saveTopics();
-            publishTopicsConfig();
-
-            if (currentView === 'tile') {
-                renderTileView();
-            } else {
-                renderTopics();
+                renderCurrentView();
             }
         }
 
@@ -2401,7 +1706,6 @@
 
                 // Reset current values
                 duplicatedTopic.currentPayload = null;
-                duplicatedTopic.currentValue = null;
 
                 // Insert the duplicated topic right after the original
                 const newIndex = selectedRow + 1;
@@ -2523,7 +1827,7 @@
                     topics = data.topics;
                     saveTopics();
                     publishTopicsConfig();
-                    renderTopics();
+                    renderCurrentView();
                 }
                 if (data.settings) {
                     localStorage.setItem('mqttPanelSettings', JSON.stringify(data.settings));
@@ -2606,79 +1910,6 @@
 
             preview.style.backgroundColor = color;
             hiddenInput.value = color;
-        }
-
-        // Timer color palette functions
-        function showTimerColorPalette(preview, targetId) {
-            const currentColor = document.getElementById(targetId).value;
-
-            // Create modal overlay
-            const modal = document.createElement('div');
-            modal.className = 'color-palette-modal';
-            modal.innerHTML = `
-                <div class="color-palette-container">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="mb-0">Select Color</h6>
-                        <button type="button" class="btn-close" aria-label="Close"></button>
-                    </div>
-                    <div class="color-palette" id="colorPalette">
-                        ${colorPalette.map(color =>
-                            `<div class="color-option ${color === currentColor ? 'selected' : ''}"
-                                 style="background-color: ${color}"
-                                 data-color="${color}"></div>`
-                        ).join('')}
-                    </div>
-                    <div class="mt-3 text-end">
-                        <button type="button" class="btn btn-secondary me-2" id="cancelColorBtn">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="selectColorBtn">Select</button>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(modal);
-
-            let selectedColor = currentColor;
-
-            // Color option click events
-            modal.querySelectorAll('.color-option').forEach(option => {
-                option.addEventListener('click', function() {
-                    modal.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
-                    this.classList.add('selected');
-                    selectedColor = this.dataset.color;
-                });
-            });
-
-            // Close button
-            modal.querySelector('.btn-close').addEventListener('click', () => {
-                document.body.removeChild(modal);
-            });
-
-            // Cancel button
-            modal.querySelector('#cancelColorBtn').addEventListener('click', () => {
-                document.body.removeChild(modal);
-            });
-
-            // Select button
-            modal.querySelector('#selectColorBtn').addEventListener('click', () => {
-                preview.style.backgroundColor = selectedColor;
-                document.getElementById(targetId).value = selectedColor;
-                document.body.removeChild(modal);
-            });
-
-            // Click outside to close
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            });
-        }
-
-        // Test timer sound
-        function testTimerSound() {
-            const sound = document.getElementById('timerSound').value;
-            if (!sound) return;
-
-            playTimerSound(sound);
         }
 
         // Payload editing functions
@@ -2907,17 +2138,6 @@
             updateFullscreenIcon(!!document.fullscreenElement);
         });
 
-        // Day selection helper functions
-        function selectAllDays(scheduleId) {
-            const checkboxes = document.querySelectorAll(`.${scheduleId}-day`);
-            checkboxes.forEach(cb => cb.checked = true);
-        }
-
-        function deselectAllDays(scheduleId) {
-            const checkboxes = document.querySelectorAll(`.${scheduleId}-day`);
-            checkboxes.forEach(cb => cb.checked = false);
-        }
-
         // View toggle functions
         let currentView = 'list'; // 'list' or 'tile'
 
@@ -3014,53 +2234,7 @@
                 // Find original index in topics array
                 const originalIndex = topics.indexOf(topic);
 
-                let displayText, backgroundColor, textColor;
-
-                // Special handling for timer function
-                if (topic.functionType === 'timer') {
-                    // Check if there's a matching payload value first (for both numeric and non-numeric)
-                    const currentPayloadValue = topic.payloadValues && topic.payloadValues.find(pv => pv.value === topic.currentPayload);
-
-                    if (currentPayloadValue) {
-                        // Use payload value settings if available
-                        displayText = currentPayloadValue.display;
-                        backgroundColor = currentPayloadValue.backgroundColor;
-                        textColor = currentPayloadValue.textColor;
-                    } else {
-                        const seconds = parseInt(topic.currentPayload);
-                        if (!isNaN(seconds)) {
-                            // Format time display
-                            displayText = formatTimerDisplay(seconds);
-
-                            // Use timer colors
-                            if (seconds >= 0) {
-                                backgroundColor = topic.timerCountdownBg || '#007bff';
-                                textColor = topic.timerCountdownFg || '#ffffff';
-                            } else {
-                                backgroundColor = topic.timerOvertimeBg || '#ff0000';
-                                textColor = topic.timerOvertimeFg || '#ffffff';
-                            }
-                        } else {
-                            displayText = topic.currentPayload || '';
-                            backgroundColor = '#ffffff';
-                            textColor = '#000000';
-                        }
-                    }
-                } else {
-                    const currentPayloadValue = topic.payloadValues.find(pv => pv.value === topic.currentPayload);
-                    // Fallback to wildcard (*) if no exact match
-                    const wildcardValue = !currentPayloadValue ? topic.payloadValues.find(pv => pv.value === '*') : null;
-                    const effectivePayloadValue = currentPayloadValue || wildcardValue;
-
-                    // Use jsonDisplayText if available, otherwise use payload value display or current payload
-                    if (topic.jsonDisplayText) {
-                        displayText = topic.jsonDisplayText;
-                    } else {
-                        displayText = currentPayloadValue ? currentPayloadValue.display : (topic.currentPayload || '');
-                    }
-                    backgroundColor = effectivePayloadValue ? effectivePayloadValue.backgroundColor : '#ffffff';
-                    textColor = effectivePayloadValue ? effectivePayloadValue.textColor : '#000000';
-                }
+                const { displayText, backgroundColor, textColor } = resolveTopicDisplay(topic);
 
                 const tile = document.createElement('div');
                 tile.className = 'tile';
@@ -3176,69 +2350,7 @@
             topic.currentPayload = nextValue;
             saveTopics();
 
-            if (currentView === 'tile') {
-                renderTileView();
-            } else {
-                renderTopics();
-            }
-        }
-
-        // Schedule checker
-        let scheduleInterval = null;
-
-        function startScheduleChecker() {
-            if (scheduleInterval) return;
-
-            // Check schedules every minute
-            scheduleInterval = setInterval(checkSchedules, 60000);
-            // Also check immediately
-            checkSchedules();
-        }
-
-        function checkSchedules() {
-            const now = new Date();
-            const currentDay = now.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
-            const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-            topics.forEach(topic => {
-                if (topic.functionType !== 'schedule' || !topic.functionEnabled || !topic.schedules) {
-                    return;
-                }
-
-                topic.schedules.forEach(schedule => {
-                    // Check if schedule is enabled
-                    if (schedule.enabled === false) {
-                        return;
-                    }
-
-                    // Check if current day matches any scheduled day
-                    if (!schedule.days || !schedule.days.includes(currentDay)) {
-                        return;
-                    }
-
-                    // Check if current time matches schedule time
-                    if (schedule.time === currentTime) {
-                        // Check if we've already published this minute (prevent duplicates)
-                        const scheduleKey = `${topic.name}_${schedule.time}_${currentDay}`;
-                        const lastRun = localStorage.getItem(`schedule_${scheduleKey}`);
-                        const currentMinute = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}_${currentTime}`;
-
-                        if (lastRun !== currentMinute && mqttClient && mqttClient.connected) {
-                            // Publish payload with retain flag
-                            mqttClient.publish(topic.name, schedule.payload, { retain: true });
-                            console.log(`Schedule triggered: ${topic.name} = ${schedule.payload} (${schedule.time} on day ${currentDay})`);
-
-                            // Update current payload display
-                            topic.currentPayload = schedule.payload;
-                            saveTopics();
-                            renderTopics();
-
-                            // Mark as run for this minute
-                            localStorage.setItem(`schedule_${scheduleKey}`, currentMinute);
-                        }
-                    }
-                });
-            });
+            renderCurrentView();
         }
     </script>
 </body>
