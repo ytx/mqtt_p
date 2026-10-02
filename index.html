@@ -26,6 +26,9 @@
         .status-disconnected {
             background-color: #dc3545;
         }
+        .status-reconnecting {
+            background-color: #ffc107;
+        }
         .context-menu {
             position: absolute;
             background: white;
@@ -419,6 +422,14 @@
 
         [data-theme="dark"] #tileControlBar.disconnected {
             background: rgba(150, 30, 30, 0.95);
+        }
+
+        #tileControlBar.reconnecting {
+            background: rgba(255, 215, 100, 0.95);
+        }
+
+        [data-theme="dark"] #tileControlBar.reconnecting {
+            background: rgba(130, 100, 0, 0.95);
         }
 
         .tile-control-btn {
@@ -963,15 +974,14 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://unpkg.com/mqtt@5.16.0/dist/mqtt.min.js"></script>
     <script>
         // Global variables
         let mqttClient = null;
         let topics = [];
         let currentTopicIndex = -1;
         let selectedRow = null;
-        let reconnectInterval = null; // Store reconnect check interval ID
-        let isManualDisconnect = false; // Track if disconnect was manual
+        let reconnectWaiting = false; // True while mqtt.js waits between reconnect attempts
         let ignoreNextTopicsMessage = false; // Ignore echo of own publish
         let lastPublishedTopicsJson = null; // Track last published config for diff
 
@@ -1030,8 +1040,7 @@
             updateView();
             initializeEventListeners();
 
-            // Set initial disconnected state
-            document.getElementById('tileControlBar').classList.add('disconnected');
+            setConnectionState('disconnected');
 
             // Auto-connect if settings are available
             setTimeout(autoConnectMQTT, 1000); // Delay to ensure UI is ready
@@ -1091,6 +1100,14 @@
                 showTopicModal();
             });
 
+            // Reconnect without waiting when the network or the tab comes back
+            window.addEventListener('online', reconnectNow);
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') {
+                    reconnectNow();
+                }
+            });
+
             // Window resize handler for tile font size
             window.addEventListener('resize', function() {
                 if (currentView === 'tile') {
@@ -1109,9 +1126,16 @@
         }
 
         // MQTT connection management
+        function setConnectionState(state) {
+            // state: 'connected' | 'reconnecting' | 'disconnected'
+            document.getElementById('connectionStatus').className = 'status-indicator status-' + state;
+            const controlBar = document.getElementById('tileControlBar');
+            controlBar.classList.toggle('disconnected', state === 'disconnected');
+            controlBar.classList.toggle('reconnecting', state === 'reconnecting');
+        }
+
         function connectMQTT() {
-            isManualDisconnect = false;
-            const host = document.getElementById('mqttHost').value;
+            const host = document.getElementById('mqttHost').value.trim();
             const port = document.getElementById('mqttPort').value;
             const username = document.getElementById('mqttUsername').value;
             const password = document.getElementById('mqttPassword').value;
@@ -1124,13 +1148,27 @@
                 return;
             }
 
+            // Only one client may exist; drop the previous one before reconnecting
+            if (mqttClient) {
+                mqttClient.end(true);
+                mqttClient = null;
+            }
+
             // Determine protocol based on page protocol
             // If page is HTTPS, use wss://, otherwise use ws://
             const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
 
+            // mqtt.js retries every reconnectPeriod until the broker accepts the connection.
+            // Subscriptions are re-issued in the connect handler, so resubscribe is off.
             const options = {
                 username: username || undefined,
-                password: password || undefined
+                password: password || undefined,
+                clean: true,
+                keepalive: 30,
+                connectTimeout: 10000,
+                reconnectPeriod: 5000,
+                reconnectOnConnackError: true,
+                resubscribe: false
             };
 
             // Add will message if status topic is configured
@@ -1146,73 +1184,68 @@
             // Build connection URL with appropriate protocol
             const url = `${protocol}${host}:${port}/mqtt`;
 
-            mqttClient = mqtt.connect(url, options);
+            const client = mqtt.connect(url, options);
+            mqttClient = client;
+            reconnectWaiting = false;
+            setConnectionState('reconnecting');
 
-            mqttClient.on('connect', function() {
+            // Events from a replaced client are ignored
+            client.on('connect', function() {
+                if (client !== mqttClient) return;
                 console.log('MQTT connected successfully');
-                document.getElementById('connectionStatus').className = 'status-indicator status-connected';
-                document.getElementById('tileControlBar').classList.remove('disconnected');
+                reconnectWaiting = false;
+                setConnectionState('connected');
 
                 // Publish online status if configured
                 if (statusTopic && onlinePayload) {
-                    mqttClient.publish(statusTopic, onlinePayload, { retain: true });
+                    client.publish(statusTopic, onlinePayload, { retain: true });
                     console.log(`Published online status: ${statusTopic} = ${onlinePayload}`);
                 }
 
                 subscribeToTopics();
                 subscribeTopicsConfig();
                 publishTopicsConfig();
-                startReconnectCheck();
             });
 
-            mqttClient.on('message', function(topic, message, packet) {
+            client.on('message', function(topic, message, packet) {
+                if (client !== mqttClient) return;
                 handleMessage(topic, message.toString(), packet.retain);
             });
 
-            mqttClient.on('error', function(error) {
-                console.error('MQTT Error:', error);
-                document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
-                document.getElementById('tileControlBar').classList.add('disconnected');
-                // Reset client reference on error
-                mqttClient = null;
+            client.on('reconnect', function() {
+                if (client !== mqttClient) return;
+                console.log('MQTT reconnecting...');
+                reconnectWaiting = false;
+                setConnectionState('reconnecting');
             });
 
-            mqttClient.on('close', function() {
+            client.on('close', function() {
+                if (client !== mqttClient) return;
                 console.log('MQTT connection closed');
-                document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
-                document.getElementById('tileControlBar').classList.add('disconnected');
-                // Reset client reference on close
-                mqttClient = null;
+                reconnectWaiting = true;
+                setConnectionState('reconnecting');
+            });
+
+            client.on('error', function(error) {
+                if (client !== mqttClient) return;
+                console.error('MQTT Error:', error);
             });
         }
 
         function disconnectMQTT() {
-            isManualDisconnect = true;
-            stopReconnectCheck();
             if (mqttClient) {
                 mqttClient.end();
                 mqttClient = null;
             }
-            document.getElementById('connectionStatus').className = 'status-indicator status-disconnected';
-            document.getElementById('tileControlBar').classList.add('disconnected');
+            reconnectWaiting = false;
+            setConnectionState('disconnected');
         }
 
-        function startReconnectCheck() {
-            stopReconnectCheck();
-            // Check connection every 30 seconds
-            reconnectInterval = setInterval(() => {
-                if (!mqttClient && !isManualDisconnect) {
-                    console.log('Connection lost. Attempting to reconnect...');
-                    connectMQTT();
-                }
-            }, 30000);
-        }
-
-        function stopReconnectCheck() {
-            if (reconnectInterval) {
-                clearInterval(reconnectInterval);
-                reconnectInterval = null;
-            }
+        // Skip the wait between retries when the network or the tab comes back
+        function reconnectNow() {
+            if (!mqttClient || mqttClient.connected || !reconnectWaiting) return;
+            console.log('Reconnecting immediately...');
+            mqttClient.reconnect();
         }
 
         function subscribeToTopics() {
