@@ -1,10 +1,10 @@
 # MQTT Panel
 
-A single HTML file MQTT message processing application with modern UI and dark mode support.
+A single HTML file MQTT monitoring panel with modern UI and dark mode support.
 
 ## Overview
 
-MQTT Panel is a web application that monitors MQTT topics and processes received messages through transfer, conversion, or cycling operations. It displays configured topics in a table format and allows real-time monitoring of message states.
+MQTT Panel is a web application that monitors MQTT topics and displays their current state. It shows configured topics in a table or tile view, colors them by payload value, and publishes only on user action (tile click, quick publish, inline edit).
 
 ## Key Features
 
@@ -14,10 +14,10 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
   - Display: Display text corresponding to payload values
   - Topic: MQTT topic name
   - Payload: Current payload value (editable by clicking)
-  - Function: ON/OFF status of configured functions (monitoring always continues)
 
 - **CRUD Operations**:
   - Add Topic: Control bar button
+  - Browse Topics: Control bar button to discover topics on the broker and add them in bulk
   - Edit/Duplicate/Delete: Right-click on rows for context menu
   - Quick Publish: Right-click to publish predefined payload values
   - Duplicate: Creates a copy of the topic with "(Copy)" suffix
@@ -32,52 +32,11 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
 - **Visual Feedback**: Smooth animations during drag operations
 - **Auto-save**: Order changes are automatically saved
 
-### Processing Functions (Mutually Exclusive)
-
-#### 1. Transfer Function
-- Forwards received payload as-is to another topic
-- Settings: Target topic
-
-#### 2. Convert Function
-- Publishes corresponding values to another topic based on received payload
-- Conversion values can be set for each payload value
-- Settings: Target topic, default value (for undefined payloads)
-
-#### 3. Cycle Function
-- Advances/reverses through a list of values when specific payloads (next/prev) are received
-- Publishes with retain flag (saved to MQTT server)
-- Uses first element if no initial value
-- Settings: Next payload (required), previous payload (optional)
-
-#### 4. Schedule Function
-- Publishes messages at scheduled times based on day of week and time
-- Supports up to 2 independent schedules per topic
-- Each schedule can be individually enabled/disabled
-- Publishes with retain flag
-- Settings: Days of week, time, payload, enabled/disabled per schedule
-
-#### 5. Timer Function
-- Countdown timer that publishes decreasing values at specified intervals
-- Starts countdown when receiving an integer payload
-- Stops when receiving a non-numeric payload
-- Displays time in HH:MM:SS or MM:SS format (hours shown only when > 0)
-- Supports overtime (negative values) with different color scheme
-- Color priority: Payload value settings take precedence over timer colors
-- Settings:
-  - Publish interval (seconds)
-  - Countdown color (background/foreground) - used when no payload value match
-  - Overtime color (background/foreground) - used when no payload value match
-  - Sound when reaching 0 (beep/bell/chime/custom audio file)
-- Default colors:
-  - Countdown: Blue background (#007bff), White text (#ffffff)
-  - Overtime: Red background (#ff0000), White text (#ffffff)
-
 ### Display & Color Settings
 - **Payload Value Configuration**: For each payload value
   - Display Text: Custom display name in table
   - Background Color: Table row background color (28-color palette)
   - Text Color: Table row text color (28-color palette)
-  - Convert Value: Value used in convert function
 - **Wildcard Value (`*`)**: Set payload value to `*` to define default colors for unmatched payloads
 - **Default Colors for New Payloads**:
   - First payload: Teal background (#20c997), White text (#ffffff)
@@ -99,14 +58,26 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
   - Both messages use retain flag for persistent status
 - **Auto-connect**: Automatically connects on startup if settings exist
 - **Auto-subscribe**: Automatically subscribes to configured topics
-- **Status Indicator**: Fixed position indicator (top-right corner)
+- **Auto-reconnect**: A single mqtt.js client retries every 5 seconds without limit (`reconnectPeriod: 5000`, `keepalive: 30`, `connectTimeout: 10000`, `reconnectOnConnackError: true`)
+  - Works when the broker is down at startup and when the broker refuses the connection
+  - On every connect: publishes online status, re-subscribes all topics, re-subscribes and publishes the topics config
+  - Manual Disconnect stops reconnecting until Connect is clicked or the page is reloaded
+  - Browser `online` event and tab becoming visible trigger an immediate retry
+- **Status Indicator**: Fixed position indicator (top-right corner) with three states: connected (green), reconnecting (yellow), disconnected (red). All updates go through `setConnectionState`
 - **Real-time Updates**: Live payload value updates and color changes
-- **Function Control**: Individual on/off control for each topic's processing functions
-  - ON (Green): Messages are processed and functions execute
-  - OFF (Gray): Messages are monitored and displayed only, no processing
 - **HTTPS Compatibility**: When accessing via HTTPS, WebSocket connections automatically use WSS (secure WebSocket)
   - Note: MQTT broker must support WSS connections for HTTPS deployments
   - Alternative: Use reverse proxy (nginx/apache) to provide WSS endpoint
+
+### Topic Browser
+- **Discovery**: MQTT has no topic listing, so the browser subscribes to a wildcard filter (default `#`, editable) while its modal is open and collects the topics that arrive
+- **List**: Topic name, latest payload, retained flag; sorted by name; text search; capped at 2000 topics
+- **Bulk Add** (control bar button): Check topics and click "Add selected"; label is the last topic segment, payload values are empty
+- **Single Pick** ("Browse" button next to Topic Name in the topic modal): Click a row to fill the Topic Name field; the topic modal is hidden while browsing and restored afterwards
+- **Exclusions**: Topics already added are shown but not selectable; the topics config sync topics are not listed
+- **Unsubscribe**: The filter is unsubscribed when the modal closes, unless a configured topic uses the same name
+- **Safety**: Topic names and payloads from the broker are inserted with `textContent`
+- **Broker Limits**: A broker may cap how many retained messages it sends at once (Mosquitto: `max_queued_messages`, default 1000), so a wide filter can return fewer topics than exist
 
 ### Remote Topics Configuration Sync
 - **MQTT-based Configuration**: Read/write topic configuration via MQTT topics
@@ -118,8 +89,8 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
   - `clients/<hostname>/topics/errors`: Error details when status is `error` (retain)
 - **Publishing (local → external)**:
   - Publishes current config on MQTT connect and after any config change
-  - Config changes: topic add/edit/delete/duplicate, function toggle, reorder, import
-  - Runtime state changes (currentPayload, currentValue) do NOT trigger publish
+  - Config changes: topic add/edit/delete/duplicate, reorder, import, topic browser add
+  - Runtime state changes (currentPayload) do NOT trigger publish
   - Skips publish if config hasn't changed (JSON comparison)
 - **Receiving (external → local)**:
   - Subscribes to config topic on MQTT connect
@@ -127,36 +98,29 @@ MQTT Panel is a web application that monitors MQTT topics and processes received
   - On validation error: publishes `error` to status topic and details to errors topic
   - On success with changes: replaces topics array, saves to localStorage, re-renders UI, publishes `success`
   - If no changes detected: does nothing (no echo)
-  - Runtime fields (`currentPayload`, `currentValue`) are stripped on publish and ignored on receive
+  - Runtime fields (`currentPayload`, `rawPayload`, `jsonDisplayText`) are stripped on publish and ignored on receive
+  - Legacy fields of removed functions are stripped by `normalizeTopic` before comparison
 - **Echo Prevention**: Ignores own publish echo using a flag
 - **Infinite Loop Prevention**: When applying external config, saves directly to localStorage without re-publishing
-- **JSON Format**: Array of topic objects excluding runtime fields (`currentPayload`, `currentValue`, `lastRetain`, `rawPayload`, `jsonDisplayText`)
+- **JSON Format**: Array of topic objects excluding runtime fields (`currentPayload`, `rawPayload`, `jsonDisplayText`)
 
 ### Data Management
 - **Auto-save**: All settings saved to localStorage automatically
 - **Export**: Full configuration export to JSON format
 - **Import**: JSON configuration import with backward compatibility
+- **Legacy Data**: `normalizeTopic` removes fields of the removed functions (`functionType`, `functionEnabled`, `transferTopic`, `convertTopic`, `convertDefault`, `cycleNextPayload`, `cyclePrevPayload`, `schedules`, `timer*`, `convertValue`) on localStorage load, import, and remote config receive
 - **Payload Editing**: Click-to-edit payload values with direct MQTT publish
 - **Remote Sync**: Topic configuration synchronized via MQTT (see Remote Topics Configuration Sync)
 
 ### Retain Flags
-MQTT messages published by different functions have varying retain flag behaviors:
 
-**With Retain Flag (saved to broker)**:
-- Cycle Function: Published values retained
-- Schedule Function: Published values retained
-- Tile View Click: Published values retained
-- Quick Publish (Context Menu): Published values retained
-- Inline Payload Edit: Published values retained
-- Client Status: Both online and away messages retained
-- Remote Topics Config: Configuration JSON, status, and errors retained
+All messages published by the panel use the retain flag:
 
-**Following Source Message Retain Flag**:
-- Transfer Function: Uses retain flag from received message
-- Convert Function: Uses retain flag from received message
-
-**Without Retain Flag**:
-- Timer Function: Published countdown values not retained
+- Tile View Click
+- Quick Publish (Context Menu)
+- Inline Payload Edit
+- Client Status: Both online and away messages
+- Remote Topics Config: Configuration JSON, status, and errors
 
 ## Technical Specifications
 
@@ -167,7 +131,7 @@ MQTT messages published by different functions have varying retain flag behavior
 ### Dependencies (CDN)
 - Bootstrap 5.3.0: UI framework with dark mode support
 - Bootstrap Icons: Icon library
-- MQTT.js: MQTT client library
+- MQTT.js 5.16.0: MQTT client library (version pinned)
 
 ### Browser Requirements
 - Modern web browser with WebSocket support
@@ -218,17 +182,14 @@ location /mqtt {
 5. Click "Connect" to establish MQTT connection
 
 ### 2. Topic Configuration
-1. Click "Add Topic" button in the control bar
+
+1. Click "Add Topic" button in the control bar, or "Browse Topics" to pick topics from the broker
 2. Enter basic information (label, topic name)
-3. Configure payload values with display text and colors (not required for Timer/Schedule functions)
-4. Select and configure a function (Transfer/Convert/Cycle/Schedule/Timer)
-5. Click "Save" to complete setup
+3. Configure payload values with display text and colors
+4. Click "Save" to complete setup
 
 ### 3. Operation
 - **Real-time Monitoring**: View live message updates in the table
-- **Function Toggle**: Click function buttons to enable/disable processing (monitoring continues)
-  - Green (ON): Functions execute and process messages
-  - Gray (OFF): Monitor only, no message processing
 - **Quick Publish**: Right-click rows to publish predefined values
 - **Edit Payloads**: Click payload cells to edit and publish directly
 - **Reorder Topics**: Drag rows using the grip handle
@@ -245,39 +206,6 @@ location /mqtt {
 - Range: 5% to 50%
 - Changes apply immediately to tile view
 
-## Configuration Examples
-
-### Cycle Function Example
-```
-Label: Light Control
-Topic: home/light/status
-Payload Values:
-- value: "off", display: "Off", background: "#ffcccc", text: "#000000"
-- value: "dim", display: "Dimmed", background: "#ffffcc", text: "#000000"
-- value: "bright", display: "Bright", background: "#ccffcc", text: "#000000"
-Function: Cycle
-Next Payload: "next"
-Previous Payload: "prev"
-```
-
-When current value is "dim" and "next" is received, "bright" will be published.
-
-**Function Control**: Toggle OFF to monitor light status without affecting the cycling behavior.
-
-### Convert Function Example
-```
-Label: Temperature Sensor
-Topic: sensors/temperature
-Payload Values:
-- value: "20.5", display: "Room Temp", convert: "comfortable"
-- value: "25.0", display: "Warm", convert: "warm"
-Function: Convert
-Target Topic: home/status/comfort
-Default Value: "unknown"
-
-**Function Control**: Disable to monitor temperature readings without triggering comfort control messages.
-```
-
 ## Data Format
 
 Configuration data is saved to localStorage in the following format:
@@ -288,8 +216,6 @@ Configuration data is saved to localStorage in the following format:
     {
       "label": "Topic Name",
       "name": "mqtt/topic",
-      "functionType": "cycle",
-      "functionEnabled": true,
       "jsonPathValue": "data.status",
       "jsonPathDisplay": "data.label",
       "payloadValues": [
@@ -297,14 +223,10 @@ Configuration data is saved to localStorage in the following format:
           "value": "on",
           "display": "On",
           "backgroundColor": "#ccffcc",
-          "textColor": "#000000",
-          "convertValue": "1"
+          "textColor": "#000000"
         }
       ],
-      "cycleNextPayload": "next",
-      "cyclePrevPayload": "prev",
-      "currentPayload": "on",
-      "currentValue": "on"
+      "currentPayload": "on"
     }
   ],
   "settings": {
@@ -339,13 +261,13 @@ Configuration data is saved to localStorage in the following format:
 - **View Toggle**: Switch between list and tile views
 - **Settings**: Open settings modal
 - **Add Topic**: Create new topic
+- **Browse Topics**: Discover and add topics from the broker
 - **GitHub Link**: Bottom of control bar
 
 ### Additional UI Elements
-- **Connection Status Indicator**: Top-right corner (green=connected, red=disconnected)
+- **Connection Status Indicator**: Top-right corner (green=connected, yellow=reconnecting, red=disconnected)
 - **Drag Handle**: Left column with grip icon for row reordering (list view)
 - **Payload Cells**: Click to edit and publish values directly (list view)
-- **Function Buttons**: Toggle function enable/disable
 - **Context Menu**: Right-click for edit/delete/quick publish options (list view)
 - **Color Palette**: 28-color selection for background and text colors
 - **Wide Modals**: Topic and settings modals use 90% screen width for better usability
@@ -381,15 +303,13 @@ This is a single-file MQTT application with the following development guidelines
 - Dark/light theme with complete UI coverage
 - Drag & drop row reordering
 - Auto-connect MQTT on startup with protocol auto-detection (ws:// or wss://)
+- Automatic reconnect with a single mqtt.js client and three-state connection indicator
+- Topic browser for discovering broker topics (bulk add and single pick)
 - HTTPS-compatible with automatic WSS protocol selection
 - Client status reporting with will message support
-- Configurable retain flags for different publish operations
 - 28-color palette for background and text colors
 - Smart default colors for new payload values (Teal for first, Red for subsequent)
 - Real-time row color updates based on payload values
-- Schedule function with day/time-based publishing
-- Timer function with countdown and audio alerts
-- Timer color priority system (payload values override timer colors)
 - JSON Path extraction for structured JSON payloads (dot notation)
 - Configurable tile view font sizes (label and display percentages)
 - Automatic text overflow handling in tile view (font shrinking and ellipsis)
