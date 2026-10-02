@@ -986,6 +986,34 @@
             '#e3f2fd', '#fce4ec', '#ffcdd2', '#d7ccc8'
         ];
 
+        // Fields left over from removed processing functions
+        const LEGACY_TOPIC_FIELDS = [
+            'functionType', 'functionEnabled',
+            'transferTopic', 'convertTopic', 'convertDefault',
+            'cycleNextPayload', 'cyclePrevPayload', 'schedules',
+            'timerInterval', 'timerCountdownBg', 'timerCountdownFg',
+            'timerOvertimeBg', 'timerOvertimeFg', 'timerSound',
+            'currentValue', 'lastRetain', 'timerRemaining'
+        ];
+
+        function normalizeTopic(topic) {
+            const copy = Object.assign({}, topic);
+            LEGACY_TOPIC_FIELDS.forEach(field => delete copy[field]);
+
+            const payloadValues = Array.isArray(copy.payloadValues) ? copy.payloadValues : [];
+            copy.payloadValues = payloadValues.map(pv => {
+                const pvCopy = Object.assign({}, pv);
+                // Convert old color format to new format
+                if (pvCopy.color && !pvCopy.backgroundColor) {
+                    pvCopy.backgroundColor = pvCopy.color;
+                    pvCopy.textColor = '#000000';
+                }
+                delete pvCopy.convertValue;
+                return pvCopy;
+            });
+            return copy;
+        }
+
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
             loadSettings();
@@ -1293,13 +1321,14 @@
                 return;
             }
 
-            // Compare with current config (ignoring runtime fields)
-            const incomingJson = JSON.stringify(stripRuntimeFields(data));
+            // Compare with current config (ignoring runtime and legacy fields)
+            const incoming = stripRuntimeFields(data.map(normalizeTopic));
+            const incomingJson = JSON.stringify(incoming);
             const currentJson = JSON.stringify(stripRuntimeFields(topics));
             if (incomingJson === currentJson) return;
 
-            // Apply: strip runtime fields from incoming, preserve runtime state where topic matches
-            topics = stripRuntimeFields(data);
+            topics = incoming;
+            subscribeToTopics();
 
             // Save without publishing back (avoid infinite loop)
             localStorage.setItem('mqttPanelTopics', JSON.stringify(topics));
@@ -1796,8 +1825,15 @@
 
         function loadTopics() {
             const saved = localStorage.getItem('mqttPanelTopics');
-            if (saved) {
-                topics = JSON.parse(saved);
+            if (!saved) return;
+
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) {
+                    topics = parsed.filter(t => t && typeof t === 'object').map(normalizeTopic);
+                }
+            } catch (e) {
+                console.error('Failed to load saved topics:', e);
             }
         }
 
@@ -1813,21 +1849,15 @@
             try {
                 const data = JSON.parse(document.getElementById('dataTextArea').value);
                 if (data.topics) {
-                    // Convert old color format to new format
-                    data.topics.forEach(topic => {
-                        if (topic.payloadValues) {
-                            topic.payloadValues.forEach(pv => {
-                                if (pv.color && !pv.backgroundColor) {
-                                    pv.backgroundColor = pv.color;
-                                    pv.textColor = '#000000';
-                                }
-                            });
-                        }
-                    });
-                    topics = data.topics;
+                    const validationError = validateTopicsConfig(data.topics);
+                    if (validationError) {
+                        throw new Error(validationError);
+                    }
+                    topics = data.topics.map(normalizeTopic);
                     saveTopics();
                     publishTopicsConfig();
                     renderCurrentView();
+                    subscribeToTopics();
                 }
                 if (data.settings) {
                     localStorage.setItem('mqttPanelSettings', JSON.stringify(data.settings));
