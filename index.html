@@ -566,7 +566,8 @@
         }
 
         #topicModal .modal-dialog,
-        #settingsModal .modal-dialog {
+        #settingsModal .modal-dialog,
+        #topicBrowserModal .modal-dialog {
             max-width: 90%;
             width: 90%;
         }
@@ -599,6 +600,29 @@
             background-color: #3a3a3a;
             border-color: #555;
             color: #e0e0e0;
+        }
+
+        [data-theme="dark"] .input-group-text {
+            background-color: #3a3a3a;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        /* Topic browser */
+        .browser-row {
+            cursor: pointer;
+        }
+
+        .browser-row-registered {
+            cursor: default;
+            opacity: 0.5;
+        }
+
+        .browser-payload {
+            max-width: 40vw;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         [data-theme="dark"] .btn-primary {
@@ -768,6 +792,9 @@
         <button class="tile-control-btn" id="tileAddBtn" title="Add Topic">
             <i class="bi bi-plus"></i>
         </button>
+        <button class="tile-control-btn" id="tileBrowseBtn" title="Browse Topics">
+            <i class="bi bi-search"></i>
+        </button>
         <div class="tile-control-spacer"></div>
         <a href="https://github.com/ytx/mqtt_p" target="_blank" class="tile-control-github" title="GitHub">
             <i class="bi bi-github"></i>
@@ -917,7 +944,12 @@
                             </div>
                             <div class="col-md-5">
                                 <label for="topicName" class="form-label">Topic Name</label>
-                                <input type="text" class="form-control" id="topicName" required>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="topicName" required>
+                                    <button type="button" class="btn btn-outline-secondary" id="topicBrowseBtn" title="Browse topics on the broker">
+                                        <i class="bi bi-search"></i> Browse
+                                    </button>
+                                </div>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Display Options</label>
@@ -973,6 +1005,51 @@
         </div>
     </div>
 
+    <!-- Topic Browser Modal -->
+    <div class="modal fade" id="topicBrowserModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Browse Topics</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-5">
+                            <div class="input-group">
+                                <span class="input-group-text">Filter</span>
+                                <input type="text" class="form-control" id="browserFilter" value="#">
+                                <button type="button" class="btn btn-outline-primary" id="browserApplyFilterBtn">Apply</button>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <input type="search" class="form-control" id="browserSearch" placeholder="Search topics">
+                        </div>
+                    </div>
+                    <div class="alert alert-warning d-none" id="browserNotice"></div>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px" class="browser-check-col"></th>
+                                <th>Topic</th>
+                                <th>Last Payload</th>
+                                <th style="width: 90px">Retained</th>
+                            </tr>
+                        </thead>
+                        <tbody id="browserTableBody">
+                            <!-- Discovered topics will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <span class="me-auto text-muted small" id="browserCount"></span>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="browserAddBtn">Add selected</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/mqtt@5.16.0/dist/mqtt.min.js"></script>
     <script>
@@ -984,6 +1061,18 @@
         let reconnectWaiting = false; // True while mqtt.js waits between reconnect attempts
         let ignoreNextTopicsMessage = false; // Ignore echo of own publish
         let lastPublishedTopicsJson = null; // Track last published config for diff
+
+        // Topic browser state
+        const BROWSER_MAX_TOPICS = 2000;
+        let browserActive = false; // True while the browser modal is open
+        let topicModalShown = false; // True once the topic modal has finished opening
+        let browserMode = 'multi'; // 'multi' (bulk add) or 'single' (pick for the topic form)
+        let browserFilter = '#'; // Subscribed topic filter
+        let browserTopics = new Map(); // topic name -> { payload, retain }
+        let browserSelected = new Set();
+        let browserTruncated = false;
+        let browserError = null;
+        let browserRenderTimer = null;
 
         // Color palette definition
         const colorPalette = [
@@ -1072,6 +1161,32 @@
                 addPayloadEntry();
             });
 
+            // Topic browser
+            document.getElementById('tileBrowseBtn').addEventListener('click', function() {
+                openTopicBrowser('multi');
+            });
+            document.getElementById('topicBrowseBtn').addEventListener('click', function() {
+                openTopicBrowser('single');
+            });
+            document.getElementById('browserApplyFilterBtn').addEventListener('click', applyBrowserFilter);
+            document.getElementById('browserFilter').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyBrowserFilter();
+                }
+            });
+            document.getElementById('browserSearch').addEventListener('input', renderTopicBrowser);
+            document.getElementById('browserAddBtn').addEventListener('click', addSelectedBrowserTopics);
+            document.getElementById('topicBrowserModal').addEventListener('show.bs.modal', prepareTopicBrowser);
+            document.getElementById('topicBrowserModal').addEventListener('shown.bs.modal', startTopicBrowser);
+            document.getElementById('topicBrowserModal').addEventListener('hidden.bs.modal', stopTopicBrowser);
+            document.getElementById('topicModal').addEventListener('shown.bs.modal', function() {
+                topicModalShown = true;
+            });
+            document.getElementById('topicModal').addEventListener('hide.bs.modal', function() {
+                topicModalShown = false;
+            });
+
             // Export/Import
             document.getElementById('exportBtn').addEventListener('click', exportData);
             document.getElementById('importBtn').addEventListener('click', importData);
@@ -1132,6 +1247,8 @@
             const controlBar = document.getElementById('tileControlBar');
             controlBar.classList.toggle('disconnected', state === 'disconnected');
             controlBar.classList.toggle('reconnecting', state === 'reconnecting');
+            // The browser shows a notice while not connected
+            scheduleBrowserRender();
         }
 
         function connectMQTT() {
@@ -1205,6 +1322,7 @@
                 subscribeToTopics();
                 subscribeTopicsConfig();
                 publishTopicsConfig();
+                subscribeBrowserFilter();
             });
 
             client.on('message', function(topic, message, packet) {
@@ -1256,6 +1374,266 @@
                     mqttClient.subscribe(topic.name);
                 }
             });
+        }
+
+        // Topic browser: MQTT has no topic listing, so subscribe to a wildcard
+        // filter while the modal is open and collect whatever arrives
+        function defaultLabelForTopic(name) {
+            const segments = name.split('/').filter(s => s !== '');
+            return segments.length > 0 ? segments[segments.length - 1] : name;
+        }
+
+        function openTopicBrowser(mode) {
+            // Bootstrap ignores hide() while a modal is still opening
+            if (mode === 'single' && !topicModalShown) return;
+
+            browserMode = mode;
+            const browserEl = document.getElementById('topicBrowserModal');
+            const show = () => bootstrap.Modal.getOrCreateInstance(browserEl).show();
+
+            if (mode === 'single') {
+                // Bootstrap does not support stacked modals: hide the topic form
+                // while browsing and bring it back when the browser closes
+                const topicEl = document.getElementById('topicModal');
+                topicEl.addEventListener('hidden.bs.modal', show, { once: true });
+                bootstrap.Modal.getInstance(topicEl).hide();
+            } else {
+                show();
+            }
+        }
+
+        function prepareTopicBrowser() {
+            browserTopics.clear();
+            browserSelected.clear();
+            browserTruncated = false;
+            browserError = null;
+            document.getElementById('browserFilter').value = browserFilter;
+            document.getElementById('browserSearch').value = '';
+            renderTopicBrowser();
+        }
+
+        // Collecting starts once the modal has finished opening, so rows
+        // cannot be picked while Bootstrap would still ignore hide()
+        function startTopicBrowser() {
+            browserActive = true;
+            subscribeBrowserFilter();
+        }
+
+        function stopTopicBrowser() {
+            unsubscribeBrowserFilter();
+            browserActive = false;
+            browserTopics.clear();
+            browserSelected.clear();
+            if (browserRenderTimer) {
+                clearTimeout(browserRenderTimer);
+                browserRenderTimer = null;
+            }
+
+            if (browserMode === 'single') {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('topicModal')).show();
+            }
+        }
+
+        function subscribeBrowserFilter() {
+            if (!browserActive || !mqttClient || !mqttClient.connected) return;
+
+            const filter = browserFilter;
+            mqttClient.subscribe(filter, function(err, granted) {
+                if (!browserActive || filter !== browserFilter) return;
+                if (err) {
+                    browserError = 'Cannot subscribe to "' + filter + '": ' + err.message;
+                } else if (granted && granted.some(g => g.qos === 128)) {
+                    browserError = 'The broker refused the subscription to "' + filter + '".';
+                } else {
+                    browserError = null;
+                }
+                scheduleBrowserRender();
+            });
+        }
+
+        function unsubscribeBrowserFilter() {
+            if (!mqttClient || !mqttClient.connected) return;
+            // A failed subscription has nothing to unsubscribe
+            if (browserError) return;
+            // Keep the subscription when the panel itself relies on the same filter
+            if (topics.some(t => t.name === browserFilter) || browserFilter === getTopicsConfigTopic()) return;
+            mqttClient.unsubscribe(browserFilter);
+        }
+
+        function applyBrowserFilter() {
+            const filter = document.getElementById('browserFilter').value.trim();
+            if (!filter) return;
+
+            unsubscribeBrowserFilter();
+            browserFilter = filter;
+            browserTopics.clear();
+            browserSelected.clear();
+            browserTruncated = false;
+            browserError = null;
+            subscribeBrowserFilter();
+            renderTopicBrowser();
+        }
+
+        function collectBrowserMessage(topic, payload, retain) {
+            // Config sync topics are internal to the panel
+            const configTopic = getTopicsConfigTopic();
+            if (configTopic && (topic === configTopic || topic.startsWith(configTopic + '/'))) return;
+
+            const known = browserTopics.get(topic);
+            if (!known && browserTopics.size >= BROWSER_MAX_TOPICS) {
+                if (!browserTruncated) {
+                    browserTruncated = true;
+                    scheduleBrowserRender();
+                }
+                return;
+            }
+            if (known && known.payload === payload && known.retain === retain) return;
+
+            browserTopics.set(topic, { payload, retain });
+            scheduleBrowserRender();
+        }
+
+        function scheduleBrowserRender() {
+            if (!browserActive || browserRenderTimer) return;
+            browserRenderTimer = setTimeout(function() {
+                browserRenderTimer = null;
+                renderTopicBrowser();
+            }, 250);
+        }
+
+        function renderTopicBrowser() {
+            const tbody = document.getElementById('browserTableBody');
+            const notice = document.getElementById('browserNotice');
+            const addBtn = document.getElementById('browserAddBtn');
+            const search = document.getElementById('browserSearch').value.trim().toLowerCase();
+            const single = browserMode === 'single';
+            const registered = new Set(topics.map(t => t.name));
+
+            document.querySelectorAll('.browser-check-col').forEach(el => el.classList.toggle('d-none', single));
+            addBtn.classList.toggle('d-none', single);
+
+            const messages = [];
+            if (!mqttClient || !mqttClient.connected) {
+                messages.push('Not connected to the broker. Topics are listed once the connection is established.');
+            }
+            if (browserError) {
+                messages.push(browserError);
+            }
+            if (browserTruncated) {
+                messages.push('Showing the first ' + BROWSER_MAX_TOPICS + ' topics. Narrow the filter to see others.');
+            }
+            notice.textContent = messages.join(' ');
+            notice.classList.toggle('d-none', messages.length === 0);
+
+            const names = Array.from(browserTopics.keys())
+                .filter(name => name.toLowerCase().includes(search))
+                .sort();
+
+            tbody.innerHTML = '';
+            names.forEach(name => {
+                const info = browserTopics.get(name);
+                const isRegistered = registered.has(name);
+
+                const row = document.createElement('tr');
+                row.className = isRegistered ? 'browser-row browser-row-registered' : 'browser-row';
+                row.dataset.topic = name;
+
+                let checkbox = null;
+                if (!single) {
+                    const checkCell = document.createElement('td');
+                    checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'form-check-input';
+                    checkbox.disabled = isRegistered;
+                    checkbox.checked = browserSelected.has(name);
+                    checkCell.appendChild(checkbox);
+                    row.appendChild(checkCell);
+                }
+
+                // Broker-supplied strings are inserted as text, never as HTML
+                const nameCell = document.createElement('td');
+                nameCell.textContent = isRegistered ? name + ' (added)' : name;
+                row.appendChild(nameCell);
+
+                const payloadCell = document.createElement('td');
+                payloadCell.className = 'browser-payload';
+                payloadCell.textContent = info.payload.length > 200 ? info.payload.slice(0, 200) + '...' : info.payload;
+                payloadCell.title = info.payload.slice(0, 500);
+                row.appendChild(payloadCell);
+
+                const retainCell = document.createElement('td');
+                retainCell.textContent = info.retain ? 'Yes' : '';
+                row.appendChild(retainCell);
+
+                if (!isRegistered) {
+                    row.addEventListener('click', function(e) {
+                        if (single) {
+                            pickBrowserTopic(name);
+                            return;
+                        }
+                        // A click on the checkbox has already toggled it
+                        if (e.target !== checkbox) {
+                            checkbox.checked = !checkbox.checked;
+                        }
+                        if (checkbox.checked) {
+                            browserSelected.add(name);
+                        } else {
+                            browserSelected.delete(name);
+                        }
+                        updateBrowserFooter(names.length);
+                    });
+                }
+
+                tbody.appendChild(row);
+            });
+
+            updateBrowserFooter(names.length);
+        }
+
+        function updateBrowserFooter(shownCount) {
+            let text = shownCount + ' of ' + browserTopics.size + ' topics';
+            if (browserMode === 'multi') {
+                text += ', ' + browserSelected.size + ' selected';
+            }
+            document.getElementById('browserCount').textContent = text;
+            document.getElementById('browserAddBtn').disabled = browserSelected.size === 0;
+        }
+
+        function addSelectedBrowserTopics() {
+            const registered = new Set(topics.map(t => t.name));
+            const names = Array.from(browserSelected).filter(name => !registered.has(name)).sort();
+            if (names.length === 0) return;
+
+            names.forEach(name => {
+                const info = browserTopics.get(name);
+                topics.push({
+                    label: defaultLabelForTopic(name),
+                    name: name,
+                    showInTileView: true,
+                    jsonPathValue: null,
+                    jsonPathDisplay: null,
+                    payloadValues: [],
+                    currentPayload: info ? info.payload : null
+                });
+                if (mqttClient && mqttClient.connected) {
+                    mqttClient.subscribe(name);
+                }
+            });
+
+            saveTopics();
+            publishTopicsConfig();
+            renderCurrentView();
+
+            bootstrap.Modal.getInstance(document.getElementById('topicBrowserModal')).hide();
+        }
+
+        function pickBrowserTopic(name) {
+            document.getElementById('topicName').value = name;
+            const labelInput = document.getElementById('topicLabel');
+            if (!labelInput.value.trim()) {
+                labelInput.value = defaultLabelForTopic(name);
+            }
+            bootstrap.Modal.getInstance(document.getElementById('topicBrowserModal')).hide();
         }
 
         // Message handling
@@ -1382,6 +1760,10 @@
         }
 
         function handleMessage(topic, payload, retain) {
+            if (browserActive) {
+                collectBrowserMessage(topic, payload, retain);
+            }
+
             // Handle topics config sync
             const configTopic = getTopicsConfigTopic();
             if (configTopic && topic === configTopic) {
