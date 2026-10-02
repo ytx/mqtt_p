@@ -38,6 +38,12 @@ MQTT Panel is a web application that monitors MQTT topics and displays their cur
   - Background Color: Table row background color (28-color palette)
   - Text Color: Table row text color (28-color palette)
 - **Wildcard Value (`*`)**: Set payload value to `*` to define default colors for unmatched payloads
+- **Reusing Payload Values** (topic modal, next to "Add Payload Value"):
+  - "Copy from...": Dropdown listing saved presets and other topics that have payload values; choosing one replaces the rows of the form (asks first if rows are filled in). Nothing is stored until the topic is saved
+  - "Save as preset": Saves the current rows under a name (asks before overwriting an existing name)
+  - Presets are deleted with the trash button in the dropdown
+  - Copies are snapshots; presets and topics are not linked afterwards
+  - Presets are stored in localStorage key `mqttPanelPresets` as `[{ name, payloadValues }]`, sorted by name, and are not part of the remote topics config sync
 - **Default Colors for New Payloads**:
   - First payload: Teal background (#20c997), White text (#ffffff)
   - Subsequent payloads: Red background (#ff0000), White text (#ffffff)
@@ -108,6 +114,7 @@ MQTT Panel is a web application that monitors MQTT topics and displays their cur
 - **Auto-save**: All settings saved to localStorage automatically
 - **Export**: Full configuration export to JSON format
 - **Import**: JSON configuration import with backward compatibility
+- **Presets in Export/Import**: Export includes `presets`; import replaces saved presets only when the JSON has a `presets` array (invalid entries and presets without payload values are dropped)
 - **Legacy Data**: `normalizeTopic` removes fields of the removed functions (`functionType`, `functionEnabled`, `transferTopic`, `convertTopic`, `convertDefault`, `cycleNextPayload`, `cyclePrevPayload`, `schedules`, `timer*`, `convertValue`) on localStorage load, import, and remote config receive
 - **Payload Editing**: Click-to-edit payload values with direct MQTT publish
 - **Remote Sync**: Topic configuration synchronized via MQTT (see Remote Topics Configuration Sync)
@@ -229,6 +236,19 @@ Configuration data is saved to localStorage in the following format:
       "currentPayload": "on"
     }
   ],
+  "presets": [
+    {
+      "name": "On/Off",
+      "payloadValues": [
+        {
+          "value": "on",
+          "display": "On",
+          "backgroundColor": "#20c997",
+          "textColor": "#ffffff"
+        }
+      ]
+    }
+  ],
   "settings": {
     "mqttHost": "broker.example.com",
     "mqttPort": "8083",
@@ -305,6 +325,7 @@ This is a single-file MQTT application with the following development guidelines
 - Auto-connect MQTT on startup with protocol auto-detection (ws:// or wss://)
 - Automatic reconnect with a single mqtt.js client and three-state connection indicator
 - Topic browser for discovering broker topics (bulk add and single pick)
+- Payload value presets and copy from another topic in the topic modal
 - HTTPS-compatible with automatic WSS protocol selection
 - Client status reporting with will message support
 - 28-color palette for background and text colors

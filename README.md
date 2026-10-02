@@ -24,6 +24,7 @@ A modern, single-file MQTT monitoring panel with dark mode, drag & drop reorderi
 - **Client Status** - Online/offline status reporting with will message support
 - **JSON Path** - Extract values from JSON payloads using dot notation
 - **Dynamic Font Size** - Configurable tile font sizes with automatic overflow handling
+- **Payload Presets** - Save payload value settings as presets, or copy them from another topic
 - **Remote Config Sync** - Read/write topic configuration via MQTT for external management
 
 ## Quick Start
@@ -98,6 +99,16 @@ Payload values are displayed in a compact table format for easy configuration.
 > **Wildcard (`*`)**: Set payload value to `*` to define default colors for any unmatched payloads
 
 > **Default colors**: First payload uses Teal/White (#20c997/#ffffff), subsequent payloads use Red/White (#ff0000/#ffffff)
+
+#### Reusing Payload Value Settings
+
+You do not have to enter the same payload values for every topic.
+
+- **Copy from...**: Replaces the rows with the settings of a saved preset or of another topic. If rows are already filled in, you are asked before they are replaced.
+- **Save as preset**: Saves the current rows under a name. Saving with an existing name overwrites that preset after confirmation.
+- To delete a preset, open **Copy from...** and click the trash icon next to its name.
+
+Nothing changes in the topic until you click **Save**. A copy is a snapshot: later changes to the preset or to the source topic do not affect topics that copied from it.
 
 ### 5. Save and Monitor
 
@@ -202,6 +213,8 @@ Every message published by MQTT Panel uses the retain flag, so the broker keeps 
 3. Click **"Import"**
 4. Configuration is automatically applied
 
+The exported JSON contains topics, payload value presets, and settings. Importing JSON that has a `presets` list replaces the saved presets; JSON without it leaves them unchanged.
+
 ### Backup Strategy
 - Export regularly to preserve configurations
 - Store JSON files in version control
@@ -245,6 +258,7 @@ Topic configuration can be read and written via MQTT, enabling external tools to
 - On error: `error` is published to status topic, details to errors topic
 - If the received config is identical to current config, no action is taken
 - Settings of the removed functions (`functionType`, `convertValue`, and so on) in incoming configuration are ignored
+- Payload value presets are not part of the synchronized configuration; they stay in the browser and in exported JSON
 
 #### Example: Update Topics Externally
 

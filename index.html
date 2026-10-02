@@ -646,6 +646,40 @@
             color: #fff;
         }
 
+        #copyPayloadMenu {
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+
+        #copyPayloadMenu .dropdown-empty {
+            opacity: 0.6;
+        }
+
+        [data-theme="dark"] .dropdown-menu {
+            background-color: #2d2d2d;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        [data-theme="dark"] .dropdown-item,
+        [data-theme="dark"] .dropdown-item-text {
+            color: #e0e0e0;
+        }
+
+        [data-theme="dark"] .dropdown-item:hover,
+        [data-theme="dark"] .dropdown-item:focus {
+            background-color: #3a3a3a;
+            color: #e0e0e0;
+        }
+
+        [data-theme="dark"] .dropdown-header {
+            color: #adb5bd;
+        }
+
+        [data-theme="dark"] .dropdown-divider {
+            border-top-color: #555;
+        }
+
         [data-theme="dark"] .context-menu {
             background: #2d2d2d;
             border-color: #555;
@@ -991,9 +1025,22 @@
                                     <!-- Payload value entries will be inserted here -->
                                 </tbody>
                             </table>
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="addPayloadBtn">
-                                <i class="bi bi-plus"></i> Add Payload Value
-                            </button>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="addPayloadBtn">
+                                    <i class="bi bi-plus"></i> Add Payload Value
+                                </button>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" id="copyPayloadBtn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        <i class="bi bi-files"></i> Copy from...
+                                    </button>
+                                    <ul class="dropdown-menu" id="copyPayloadMenu">
+                                        <!-- Presets and topics will be inserted here -->
+                                    </ul>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="savePresetBtn">
+                                    <i class="bi bi-bookmark-plus"></i> Save as preset
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -1076,6 +1123,9 @@
         let browserError = null;
         let browserRenderTimer = null;
 
+        // Payload value presets: [{ name, payloadValues }]
+        let presets = [];
+
         // Color palette definition
         const colorPalette = [
             '#ffffff', '#f8f9fa', '#e9ecef', '#dee2e6',
@@ -1119,6 +1169,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadSettings();
             loadTopics();
+            loadPresets();
             loadTheme();
 
             // Tile view is always enabled now (no setting needed)
@@ -1162,6 +1213,8 @@
             document.getElementById('addPayloadBtn').addEventListener('click', function() {
                 addPayloadEntry();
             });
+            document.getElementById('copyPayloadBtn').addEventListener('show.bs.dropdown', renderCopyFromMenu);
+            document.getElementById('savePresetBtn').addEventListener('click', saveCurrentAsPreset);
 
             // Topic browser
             document.getElementById('tileBrowseBtn').addEventListener('click', function() {
@@ -1933,18 +1986,18 @@
 
             entry.innerHTML = `
                 <td>
-                    <input type="text" class="form-control form-control-sm payload-value" value="${data?.value || ''}">
+                    <input type="text" class="form-control form-control-sm payload-value">
                 </td>
                 <td>
-                    <input type="text" class="form-control form-control-sm payload-display" value="${data?.display || ''}">
+                    <input type="text" class="form-control form-control-sm payload-display">
                 </td>
                 <td style="text-align: center">
-                    <div class="color-preview" style="width: 28px; height: 28px; border: 1px solid #ddd; border-radius: 4px; background-color: ${bgColor}; cursor: pointer; display: inline-block;" data-target="backgroundColor"></div>
-                    <input type="hidden" class="payload-background-color" value="${bgColor}">
+                    <div class="color-preview" style="width: 28px; height: 28px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; display: inline-block;" data-target="backgroundColor"></div>
+                    <input type="hidden" class="payload-background-color">
                 </td>
                 <td style="text-align: center">
-                    <div class="color-preview" style="width: 28px; height: 28px; border: 1px solid #ddd; border-radius: 4px; background-color: ${txtColor}; cursor: pointer; display: inline-block;" data-target="textColor"></div>
-                    <input type="hidden" class="payload-text-color" value="${txtColor}">
+                    <div class="color-preview" style="width: 28px; height: 28px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; display: inline-block;" data-target="textColor"></div>
+                    <input type="hidden" class="payload-text-color">
                 </td>
                 <td>
                     <button type="button" class="btn btn-outline-danger btn-sm remove-payload">
@@ -1952,6 +2005,14 @@
                     </button>
                 </td>
             `;
+
+            // Values may come from presets or imported data: set them as properties, not as HTML
+            entry.querySelector('.payload-value').value = data?.value || '';
+            entry.querySelector('.payload-display').value = data?.display || '';
+            entry.querySelector('.payload-background-color').value = bgColor;
+            entry.querySelector('.payload-text-color').value = txtColor;
+            entry.querySelector('[data-target="backgroundColor"]').style.backgroundColor = bgColor;
+            entry.querySelector('[data-target="textColor"]').style.backgroundColor = txtColor;
 
             entry.querySelector('.remove-payload').addEventListener('click', function() {
                 entry.remove();
@@ -1968,6 +2029,174 @@
             container.appendChild(entry);
         }
 
+        // Read the payload value rows of the topic form (rows without a value are skipped)
+        function collectPayloadEntries() {
+            const payloadValues = [];
+            document.querySelectorAll('.payload-entry').forEach(entry => {
+                const value = entry.querySelector('.payload-value').value;
+                const display = entry.querySelector('.payload-display').value;
+                const backgroundColor = entry.querySelector('.payload-background-color').value;
+                const textColor = entry.querySelector('.payload-text-color').value;
+
+                if (value) {
+                    payloadValues.push({
+                        value,
+                        display: display || value,
+                        backgroundColor,
+                        textColor
+                    });
+                }
+            });
+            return payloadValues;
+        }
+
+        // Replace the rows of the topic form; nothing is stored until the topic is saved
+        function applyPayloadValues(payloadValues) {
+            if (collectPayloadEntries().length > 0 && !confirm('Replace the current payload values?')) {
+                return false;
+            }
+
+            document.getElementById('payloadValues').innerHTML = '';
+            payloadValues.forEach(pv => addPayloadEntry(pv));
+            return true;
+        }
+
+        // Payload value presets
+        function normalizePreset(preset) {
+            const payloadValues = Array.isArray(preset.payloadValues) ? preset.payloadValues : [];
+            return {
+                name: String(preset.name).trim(),
+                payloadValues: payloadValues
+                    .filter(pv => pv && typeof pv === 'object' && pv.value !== undefined && pv.value !== null && pv.value !== '')
+                    .map(pv => ({
+                        value: String(pv.value),
+                        display: String(pv.display || pv.value),
+                        backgroundColor: String(pv.backgroundColor || '#ffffff'),
+                        textColor: String(pv.textColor || '#000000')
+                    }))
+            };
+        }
+
+        function normalizePresets(list) {
+            const byName = new Map();
+            list.filter(p => p && typeof p === 'object' && typeof p.name === 'string' && p.name.trim() !== '')
+                .map(normalizePreset)
+                .filter(p => p.payloadValues.length > 0)
+                .forEach(p => byName.set(p.name, p));
+            return Array.from(byName.values()).sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        function savePresets() {
+            localStorage.setItem('mqttPanelPresets', JSON.stringify(presets));
+        }
+
+        function loadPresets() {
+            const saved = localStorage.getItem('mqttPanelPresets');
+            if (!saved) return;
+
+            try {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) {
+                    presets = normalizePresets(parsed);
+                }
+            } catch (e) {
+                console.error('Failed to load saved presets:', e);
+            }
+        }
+
+        function saveCurrentAsPreset() {
+            const payloadValues = collectPayloadEntries();
+            if (payloadValues.length === 0) {
+                alert('Add at least one payload value first');
+                return;
+            }
+
+            const name = (prompt('Preset name') || '').trim();
+            if (!name) return;
+
+            if (presets.some(p => p.name === name) && !confirm('Overwrite the preset "' + name + '"?')) {
+                return;
+            }
+
+            presets = normalizePresets(presets.filter(p => p.name !== name).concat([{ name, payloadValues }]));
+            savePresets();
+        }
+
+        function deletePreset(name) {
+            if (!confirm('Delete the preset "' + name + '"?')) return;
+
+            presets = presets.filter(p => p.name !== name);
+            savePresets();
+            renderCopyFromMenu();
+        }
+
+        function renderCopyFromMenu() {
+            const menu = document.getElementById('copyPayloadMenu');
+            menu.innerHTML = '';
+
+            const addHeader = text => {
+                const li = document.createElement('li');
+                const header = document.createElement('h6');
+                header.className = 'dropdown-header';
+                header.textContent = text;
+                li.appendChild(header);
+                menu.appendChild(li);
+            };
+            const addEmpty = text => {
+                const li = document.createElement('li');
+                const span = document.createElement('span');
+                span.className = 'dropdown-item-text small dropdown-empty';
+                span.textContent = text;
+                li.appendChild(span);
+                menu.appendChild(li);
+            };
+            // Names come from user data: inserted as text, never as HTML
+            const addSource = (text, payloadValues) => {
+                const li = document.createElement('li');
+                li.className = 'd-flex align-items-center';
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'dropdown-item flex-grow-1';
+                item.textContent = text;
+                item.addEventListener('click', function() {
+                    if (applyPayloadValues(payloadValues)) {
+                        bootstrap.Dropdown.getOrCreateInstance(document.getElementById('copyPayloadBtn')).hide();
+                    }
+                });
+                li.appendChild(item);
+                menu.appendChild(li);
+                return li;
+            };
+
+            addHeader('Presets');
+            if (presets.length === 0) {
+                addEmpty('No presets saved');
+            }
+            presets.forEach(preset => {
+                const li = addSource(preset.name, preset.payloadValues);
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'btn btn-sm btn-link text-danger preset-delete';
+                remove.title = 'Delete preset';
+                remove.innerHTML = '<i class="bi bi-trash"></i>';
+                remove.addEventListener('click', function() {
+                    deletePreset(preset.name);
+                });
+                li.appendChild(remove);
+            });
+
+            const divider = document.createElement('li');
+            divider.innerHTML = '<hr class="dropdown-divider">';
+            menu.appendChild(divider);
+
+            addHeader('Topics');
+            const sources = topics.filter((t, index) => index !== currentTopicIndex && t.payloadValues && t.payloadValues.length > 0);
+            if (sources.length === 0) {
+                addEmpty('No other topics with payload values');
+            }
+            sources.forEach(t => addSource((t.label || t.name) + ' (' + t.name + ')', t.payloadValues));
+        }
+
         function saveTopic() {
             const form = document.getElementById('topicForm');
             if (!form.checkValidity()) {
@@ -1981,27 +2210,9 @@
                 showInTileView: document.getElementById('showInTileView').checked,
                 jsonPathValue: document.getElementById('jsonPathValue').value.trim() || null,
                 jsonPathDisplay: document.getElementById('jsonPathDisplay').value.trim() || null,
-                payloadValues: [],
+                payloadValues: collectPayloadEntries(),
                 currentPayload: null
             };
-
-            // Collect payload values
-            const payloadEntries = document.querySelectorAll('.payload-entry');
-            payloadEntries.forEach(entry => {
-                const value = entry.querySelector('.payload-value').value;
-                const display = entry.querySelector('.payload-display').value;
-                const backgroundColor = entry.querySelector('.payload-background-color').value;
-                const textColor = entry.querySelector('.payload-text-color').value;
-
-                if (value) {
-                    topicData.payloadValues.push({
-                        value,
-                        display: display || value,
-                        backgroundColor,
-                        textColor
-                    });
-                }
-            });
 
             if (currentTopicIndex >= 0) {
                 topics[currentTopicIndex] = topicData;
@@ -2328,6 +2539,7 @@
         function exportData() {
             const data = {
                 topics: topics,
+                presets: presets,
                 settings: JSON.parse(localStorage.getItem('mqttPanelSettings') || '{}')
             };
             document.getElementById('dataTextArea').value = JSON.stringify(data, null, 2);
@@ -2336,6 +2548,9 @@
         function importData() {
             try {
                 const data = JSON.parse(document.getElementById('dataTextArea').value);
+                if (data.presets !== undefined && !Array.isArray(data.presets)) {
+                    throw new Error('"presets" must be an array');
+                }
                 if (data.topics) {
                     const validationError = validateTopicsConfig(data.topics);
                     if (validationError) {
@@ -2346,6 +2561,10 @@
                     publishTopicsConfig();
                     renderCurrentView();
                     subscribeToTopics();
+                }
+                if (data.presets) {
+                    presets = normalizePresets(data.presets);
+                    savePresets();
                 }
                 if (data.settings) {
                     localStorage.setItem('mqttPanelSettings', JSON.stringify(data.settings));
